@@ -368,7 +368,7 @@
     .ap-btn   { width: 100%; padding: 13px; border: none; border-radius: 10px; font-family: 'Sarabun', sans-serif; font-size: 0.95rem; font-weight: 700; background: var(--blue); color: white; cursor: pointer; }
 
     /* ═══ NAME DROPDOWN & HOUSE DROPDOWN ═══ */
-    #nameDropdown, #houseDropdown { display: none; position: absolute; z-index: 999; left: 0; right: 0; top: 100%; background: white; border: 1.5px solid var(--blue); border-top: none; border-radius: 0 0 8px 8px; max-height: 200px; overflow-y: auto; box-shadow: 0 6px 16px rgba(0,0,0,0.12); -webkit-overflow-scrolling: touch; }
+    #nameDropdown { display: none; position: absolute; z-index: 999; left: 0; right: 0; top: 100%; background: white; border: 1.5px solid var(--blue); border-top: none; border-radius: 0 0 8px 8px; max-height: 200px; overflow-y: auto; box-shadow: 0 6px 16px rgba(0,0,0,0.12); -webkit-overflow-scrolling: touch; }
     .dd-item { padding: 11px 12px; font-size: 0.9rem; cursor: pointer; border-bottom: 1px solid var(--gray-100); display: flex; justify-content: space-between; align-items: center; transition: background 0.1s; -webkit-tap-highlight-color: transparent; }
     .dd-item:hover, .dd-item:active { background: var(--blue-light); }
     .dd-item:last-child { border-bottom: none; }
@@ -615,10 +615,9 @@
   <div class="card">
     <div class="card-title"><i class="fa-solid fa-house-user"></i> ข้อมูลบ้าน</div>
     <div class="row">
-      <div class="col-5" style="position:relative;">
+      <div class="col-5">
         <label class="lbl">บ้านเลขที่</label>
-        <input type="text" id="houseNo" class="form-input" placeholder="เช่น 9/1" autocomplete="off" inputmode="decimal" oninput="syncInputs('house')" onblur="setTimeout(hideHouseDropdown,200)">
-        <div id="houseDropdown"></div>
+        <input type="text" id="houseNo" class="form-input" placeholder="เช่น 9/1" autocomplete="off" inputmode="decimal" oninput="syncInputs('house')">
       </div>
       <div class="col-7" style="position:relative;">
         <label class="lbl">ชื่อเจ้าบ้าน</label>
@@ -1480,41 +1479,13 @@ async function loadAllData(cb) {
 function syncInputs(source) {
   var hEl = document.getElementById('houseNo');
   var nEl = document.getElementById('ownerName');
-  var dd  = document.getElementById('houseDropdown');
   if (source === 'house') {
     var val = hEl.value.trim();
-    if (!val) { nEl.value = ''; clearMeter(); hideHouseDropdown(); return; }
-    // exact match — show name immediately, no dropdown needed
+    if (!val) { nEl.value = ''; clearMeter(); return; }
     var ex = villagersData.find(function(v){ return v.house === val; });
-    if (ex) { nEl.value = ex.name; hideHouseDropdown(); loadMeterData(); return; }
-    // partial match — show dropdown list
-    var mt = villagersData.filter(function(v){ return v.house && v.house.indexOf(val) === 0; });
-    if (!mt.length) mt = villagersData.filter(function(v){ return v.house && v.house.indexOf(val) !== -1; });
-    if (!mt.length) { hideHouseDropdown(); nEl.value = ''; return; }
-    dd.innerHTML = mt.map(function(v){
-      var hl = v.house.replace(new RegExp(val.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'g'),'<b style="color:var(--blue);">$&</b>');
-      return '<div class="dd-item" onmousedown="selectHouse(\''+v.house.replace(/'/g,"\\'")+ '\',\''+v.name.replace(/'/g,"\\'")+ '\')">'
-             + '<span>'+hl+'</span>'
-             + '<small style="color:var(--gray-400);margin-left:8px;flex-shrink:0;">'+v.name+'</small></div>';
-    }).join('');
-    dd.style.display = 'block';
-    hEl.style.borderBottomLeftRadius = '0'; hEl.style.borderBottomRightRadius = '0'; hEl.style.borderColor = 'var(--blue)';
+    if (ex) { nEl.value = ex.name; loadMeterData(); }
+    else { nEl.value = ''; }
   }
-}
-
-function selectHouse(house, name) {
-  document.getElementById('houseNo').value   = house;
-  document.getElementById('ownerName').value = name;
-  hideHouseDropdown();
-  loadMeterData();
-}
-
-function hideHouseDropdown() {
-  var dd = document.getElementById('houseDropdown');
-  if (!dd) return;
-  dd.style.display = 'none';
-  var hEl = document.getElementById('houseNo');
-  if (hEl) { hEl.style.borderBottomLeftRadius = ''; hEl.style.borderBottomRightRadius = ''; hEl.style.borderColor = ''; }
 }
 
 function clearMeter() {
