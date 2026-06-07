@@ -547,7 +547,7 @@
   <div class="header-gold-bar"></div>
   <div class="header-inner">
     <div class="logo-wrap">
-      <img src="https://raw.githubusercontent.com/thanpatthana-hue/prapabaandan16/main/logo16.png" alt="ตราสัญลักษณ์">
+      <img src="https://raw.githubusercontent.com/thanpatthana-hue/prapabaandan16/main/logo16.png">
     </div>
     <div class="header-text">
       <h1>ระบบจัดการค่าน้ำประปาหมู่บ้าน</h1>
@@ -1205,29 +1205,24 @@ var _reportType        = 'year';
 var _lastReportData    = null;
 
 // ══════════════════════════════════════════════════════
-// API Helper — google.script.run (ไม่มีปัญหา CORS)
+// API Helper — fetch (GitHub Pages → Apps Script)
 // ══════════════════════════════════════════════════════
-function api(action, params) {
-  return new Promise(function(resolve, reject) {
-    var runner = google.script.run
-      .withSuccessHandler(function(result) { resolve(result); })
-      .withFailureHandler(function(err) { reject(new Error(err.message || String(err))); });
+// 👇 วาง URL ของ Web App ที่ Deploy จาก Apps Script ตรงนี้
+var SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzNvu6-aEJaORCqOK4HR4b0tW_xvTcJj8WSTmKv0RHg8AHgQtcxUe6MCoROHk0mxNC58A/exec';
 
-    var p = params || {};
-    switch (action) {
-      case 'getHouseList':    runner.getHouseList();    break;
-      case 'getAllData':       runner.getAllData();       break;
-      case 'getMeterData':    runner.getMeterData(p.houseNo, p.year, p.month); break;
-      case 'saveRecord':      runner.saveRecord(p.form); break;
-      case 'forceEditRecord': runner.forceEditRecord(p.form); break;
-      case 'deleteRecord':    runner.deleteRecord(p.year, p.month, p.houseNo); break;
-      case 'getAllExpenses':   runner.getAllExpenses();   break;
-      case 'saveExpense':     runner.saveExpense(p.form); break;
-      case 'editExpense':     runner.editExpense(p.form); break;
-      case 'deleteExpense':   runner.deleteExpense(p.id); break;
-      case 'getReportData':   runner.getReportData(p.year, p.months); break;
-      default: reject(new Error('Unknown action: ' + action));
-    }
+function api(action, params) {
+  return fetch(SCRIPT_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify({ action: action, params: params || {} })
+  })
+  .then(function(res) {
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    return res.json();
+  })
+  .then(function(json) {
+    if (!json.ok) throw new Error(json.error || 'เกิดข้อผิดพลาดจาก Server');
+    return json.data;
   });
 }
 
