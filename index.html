@@ -1205,17 +1205,16 @@ var _reportType        = 'year';
 var _lastReportData    = null;
 
 // ══════════════════════════════════════════════════════
-// API Helper — fetch (GitHub Pages → Apps Script)
 // ══════════════════════════════════════════════════════
-// 👇 วาง URL ของ Web App ที่ Deploy จาก Apps Script ตรงนี้
+// API Helper — GET request (ไม่มีปัญหา CORS redirect)
+// ══════════════════════════════════════════════════════
 var SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzNvu6-aEJaORCqOK4HR4b0tW_xvTcJj8WSTmKv0RHg8AHgQtcxUe6MCoROHk0mxNC58A/exec';
 
 function api(action, params) {
-  return fetch(SCRIPT_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-    body: JSON.stringify({ action: action, params: params || {} })
-  })
+  var url = SCRIPT_URL
+    + '?action=' + encodeURIComponent(action)
+    + '&params=' + encodeURIComponent(JSON.stringify(params || {}));
+  return fetch(url, { redirect: "follow" })
   .then(function(res) {
     if (!res.ok) throw new Error('HTTP ' + res.status);
     return res.json();
