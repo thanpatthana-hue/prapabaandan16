@@ -441,6 +441,8 @@
     .loading-spinner { width: 44px; height: 44px; margin: 0 auto 12px; border: 4px solid var(--gray-200); border-top-color: var(--blue); border-radius: 50%; animation: spin 0.7s linear infinite; }
     .loading-text { font-size: 0.95rem; font-weight: 600; color: var(--gray-700); }
     .loading-sub  { font-size: 0.78rem; color: var(--gray-400); margin-top: 4px; }
+    .loading-err  { display: none; font-size: 0.82rem; color: var(--red); margin-top: 10px; line-height: 1.5; }
+    .loading-retry { display: none; margin-top: 14px; padding: 10px 24px; background: var(--blue); color: white; border: none; border-radius: 10px; font-family: 'Sarabun', sans-serif; font-size: 0.95rem; font-weight: 700; cursor: pointer; }
 
     /* ═══ ANIMATIONS ═══ */
     tr.flash-row { animation: flashBg 1.8s ease forwards; }
@@ -536,9 +538,11 @@
 <!-- ════════ LOADING OVERLAY ════════ -->
 <div id="loadingOverlay">
   <div class="loading-box">
-    <div class="loading-spinner"></div>
+    <div class="loading-spinner" id="loadingSpinner"></div>
     <div class="loading-text" id="loadingText">กำลังโหลด...</div>
     <div class="loading-sub" id="loadingSub">โปรดรอสักครู่</div>
+    <div class="loading-err" id="loadingErr"></div>
+    <button class="loading-retry" id="loadingRetry" onclick="window.location.reload()">🔄 ลองใหม่</button>
   </div>
 </div>
 
@@ -1218,7 +1222,7 @@ function api(action, params) {
       delete window[cbName];
       if (script.parentNode) script.parentNode.removeChild(script);
       reject(new Error('หมดเวลาเชื่อมต่อ'));
-    }, 20000);
+    }, 12000);
     window[cbName] = function(json) {
       if (done) return; done = true;
       clearTimeout(timer);
@@ -1409,18 +1413,31 @@ window.onload = async function() {
   initExpenseForm();
   initMonthCheckboxes();
 
-  showLoading('กำลังโหลดข้อมูล...','เชื่อมต่อระบบ');
+  showLoading('กำลังโหลดข้อมูล...','กรุณารอสักครู่...');
+  var loadOk = true;
   try {
     var list = await api('getHouseList');
     villagersData = list;
-  } catch(e) { console.error('getHouseList:', e); }
+  } catch(e) { console.error('getHouseList:', e); loadOk = false; }
 
   try {
     var exps = await api('getAllExpenses');
     allExpenses = exps || [];
   } catch(e) { console.error('getAllExpenses:', e); }
 
-  await loadAllData();
+  try {
+    await loadAllData();
+  } catch(e) { loadOk = false; }
+
+  if (!loadOk && !allRecords.length) {
+    document.getElementById('loadingSpinner').style.display = 'none';
+    document.getElementById('loadingText').textContent = 'โหลดข้อมูลไม่สำเร็จ';
+    document.getElementById('loadingSub').textContent = 'กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ต';
+    document.getElementById('loadingErr').style.display = 'block';
+    document.getElementById('loadingErr').textContent = 'ไม่สามารถเชื่อมต่อกับ Google Apps Script ได้\nอาจเป็นเพราะสัญญาณอินเทอร์เน็ตอ่อน';
+    document.getElementById('loadingRetry').style.display = 'block';
+    return;
+  }
   hideLoading();
 };
 
