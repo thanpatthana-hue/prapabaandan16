@@ -1205,23 +1205,41 @@ var _reportType        = 'year';
 var _lastReportData    = null;
 
 // ══════════════════════════════════════════════════════
-// ══════════════════════════════════════════════════════
-// API Helper — GET request (ไม่มีปัญหา CORS redirect)
+// API Helper — JSONP (ไม่มีปัญหา CORS เลย)
 // ══════════════════════════════════════════════════════
 var SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzNvu6-aEJaORCqOK4HR4b0tW_xvTcJj8WSTmKv0RHg8AHgQtcxUe6MCoROHk0mxNC58A/exec';
 
 function api(action, params) {
-  var url = SCRIPT_URL
-    + '?action=' + encodeURIComponent(action)
-    + '&params=' + encodeURIComponent(JSON.stringify(params || {}));
-  return fetch(url, { redirect: "follow" })
-  .then(function(res) {
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    return res.json();
-  })
-  .then(function(json) {
-    if (!json.ok) throw new Error(json.error || 'เกิดข้อผิดพลาดจาก Server');
-    return json.data;
+  return new Promise(function(resolve, reject) {
+    var cbName = '__cb_' + Date.now() + '_' + Math.random().toString(36).slice(2);
+    var script = document.createElement('script');
+    var done = false;
+    var timer = setTimeout(function() {
+      if (done) return; done = true;
+      delete window[cbName];
+      if (script.parentNode) script.parentNode.removeChild(script);
+      reject(new Error('หมดเวลาเชื่อมต่อ'));
+    }, 20000);
+    window[cbName] = function(json) {
+      if (done) return; done = true;
+      clearTimeout(timer);
+      delete window[cbName];
+      if (script.parentNode) script.parentNode.removeChild(script);
+      if (json && json.ok) resolve(json.data);
+      else reject(new Error((json && json.error) || 'เกิดข้อผิดพลาด'));
+    };
+    script.onerror = function() {
+      if (done) return; done = true;
+      clearTimeout(timer);
+      delete window[cbName];
+      if (script.parentNode) script.parentNode.removeChild(script);
+      reject(new Error('ไม่สามารถเชื่อมต่อได้'));
+    };
+    script.src = SCRIPT_URL
+      + '?action='   + encodeURIComponent(action)
+      + '&params='   + encodeURIComponent(JSON.stringify(params || {}))
+      + '&callback=' + cbName;
+    document.body.appendChild(script);
   });
 }
 
