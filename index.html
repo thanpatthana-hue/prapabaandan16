@@ -1545,29 +1545,10 @@ function onNameInput() {
   if (!val) { document.getElementById('houseNo').value = ''; clearMeter(); dd.style.display = 'none'; return; }
   var ex = villagersData.find(function(v){ return v.name === val; });
   if (ex) { document.getElementById('houseNo').value = ex.house; loadMeterData(); }
-
-  // ค้นหาชื่อจาก villagersData ก่อน
   var mt = villagersData.filter(function(v){ return v.name && v.name.includes(val); });
-
-  // ถ้าไม่มีใน villagersData ให้ดึงชื่อ+บ้านเลขที่จาก allRecords แทน
-  if (!mt.length && allRecords && allRecords.length) {
-    var seen = {};
-    allRecords.forEach(function(r) {
-      var n = String(r.name || r.ownerName || '');
-      var h = String(r.houseNo || '');
-      var key = h + '|' + n;
-      if (n && h && n.includes(val) && !seen[key]) {
-        seen[key] = true;
-        mt.push({ name: n, house: h });
-      }
-    });
-    mt.sort(function(a, b) { return a.name.localeCompare(b.name, 'th'); });
-  }
-
   if (!mt.length) { dd.style.display = 'none'; return; }
   dd.innerHTML = mt.map(function(v){
-    var safeVal = val.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
-    var hl = v.name.replace(new RegExp(safeVal,'g'),'<b style="color:var(--blue);">$&</b>');
+    var hl = v.name.replace(new RegExp(val.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'g'),'<b style="color:var(--blue);">$&</b>');
     return '<div class="dd-item" onmousedown="selectName(\''+v.name.replace(/'/g,"\\'")+'\',' +
            '\''+v.house.replace(/'/g,"\\'")+'\')">' +
            '<span>'+hl+'</span><small style="color:var(--gray-400);margin-left:8px;white-space:nowrap;">บ้าน '+v.house+'</small></div>';
