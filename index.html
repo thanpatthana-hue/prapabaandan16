@@ -1577,7 +1577,7 @@ function escHtml(s) {
 async function adminAddHouse() {
   var house = document.getElementById('newHouseNo').value.trim();
   var name  = document.getElementById('newHouseName').value.trim();
-  if (!house) return alert('กรุณากรอกบ้านเลขที่');
+  if (!house && !name) return alert('กรุณากรอกอย่างน้อยบ้านเลขที่ หรือชื่อเจ้าบ้าน');  // ← เปลี่ยนบรรทัดนี้
 
   showLoading('กำลังบันทึก...','โปรดรอสักครู่');
   try {
