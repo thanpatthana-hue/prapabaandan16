@@ -1496,14 +1496,22 @@ function renderAdminHouses() {
              '</div>';
     }
 
-    // โหมดปกติ
-    return '<div class="ah-row">' +
-             '<div class="ah-info">' +
-               '<div class="ah-no">บ้าน ' + escHtml(v.house) + '</div>' +
-               '<div class="ah-name">' + (v.name ? escHtml(v.name) : '<i style="color:#bbb;">(ยังไม่มีชื่อ)</i>') + '</div>' +
+   // โหมดปกติ — แสดงทั้งบ้านเลขที่ + ชื่อเจ้าบ้านในกล่องแยกชัดเจน
+    var hasName = v.name && v.name.trim();
+    return '<div class="ah-row" style="padding:10px 8px;border-bottom:1px solid #f0f0f0;">' +
+             '<div style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:0;">' +
+               '<div style="display:flex;align-items:center;gap:8px;">' +
+                 '<span style="background:#e8f0fe;color:#1341b0;font-size:0.7rem;font-weight:800;padding:2px 8px;border-radius:5px;white-space:nowrap;flex-shrink:0;">บ้าน ' + escHtml(v.house) + '</span>' +
+               '</div>' +
+               '<div style="display:flex;align-items:center;gap:5px;margin-top:3px;">' +
+                 '<i class="fa-solid fa-user" style="font-size:10px;color:#9ca3af;flex-shrink:0;"></i>' +
+                 (hasName
+                   ? '<span style="font-size:0.83rem;color:#374151;font-weight:600;">' + escHtml(v.name) + '</span>'
+                   : '<span style="font-size:0.78rem;color:#d1d5db;font-style:italic;">ยังไม่ระบุชื่อ — กด ✏️ เพื่อเพิ่ม</span>') +
+               '</div>' +
              '</div>' +
              '<div class="ah-acts">' +
-               '<button class="ah-btn edit" title="แก้ไข" onclick="adminEditHouse(\'' + key.replace(/'/g,"\\'") + '\')"><i class="fa-solid fa-pen"></i></button>' +
+               '<button class="ah-btn edit" title="แก้ไขบ้านเลขที่และชื่อ" onclick="adminEditHouse(\'' + key.replace(/'/g,"\\'") + '\')"><i class="fa-solid fa-pen"></i></button>' +
                '<button class="ah-btn del" title="ลบ" onclick="adminDeleteHouse(\'' + key.replace(/'/g,"\\'") + '\')"><i class="fa-solid fa-trash"></i></button>' +
              '</div>' +
            '</div>';
