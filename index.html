@@ -298,8 +298,18 @@
     .ah-btn { width: 34px; height: 34px; border-radius: 8px; border: 1.5px solid; background: white; cursor: pointer; font-size: 13px; display: flex; align-items: center; justify-content: center; }
     .ah-btn.edit { border-color: var(--blue); color: var(--blue); }
     .ah-btn.del { border-color: var(--red); color: var(--red); background: var(--red-light); }
+    .ah-btn.save { border-color: var(--green, #16a34a); color: white; background: var(--green, #16a34a); }
+    .ah-btn.cancel { border-color: var(--gray-300, #cbd5e1); color: var(--gray-400); background: white; }
     .ah-btn:active { transform: scale(0.94); }
     .ah-empty { text-align: center; color: var(--gray-400); font-size: 0.82rem; padding: 18px 0; }
+    /* ── Admin inline edit ── */
+    .ah-row.ah-editing { background: var(--blue-light, #eff6ff); border-radius: 10px; padding: 10px 8px; align-items: flex-end; }
+    .ah-edit-fields { flex: 1; min-width: 0; display: flex; gap: 8px; }
+    .ah-fld { flex: 1; min-width: 0; }
+    .ah-fld:first-child { flex: 0 0 38%; }
+    .ah-flbl { display: block; font-size: 0.68rem; font-weight: 700; color: var(--blue-dark); margin-bottom: 3px; }
+    .ah-input { width: 100%; box-sizing: border-box; padding: 8px 10px; border: 1.5px solid var(--blue); border-radius: 8px; font-size: 0.88rem; font-family: inherit; outline: none; }
+    .ah-input:focus { box-shadow: 0 0 0 3px rgba(37,99,235,0.15); }
 
     /* ═══ TABLE ═══ */
     .table-wrap { background: white; border-radius: 0 0 var(--radius) var(--radius); max-height: 55vh; overflow-y: auto; -webkit-overflow-scrolling: touch; border: 1px solid var(--gray-200); border-top: none; margin: 0 10px 10px; }
@@ -657,7 +667,7 @@
       </div>
       <div class="col">
         <label class="lbl accent-blue" id="labelAfter">อ่านหลัง (ถ้ามี)</label>
-        <input type="number" id="meterAfter" class="form-input new-entry" placeholder="กรอกตอนเก็บเงิน" oninput="calculate()">
+        <input type="number" id="meterAfter" class="form-input new-entry" placeholder="กรอกต   นเก็บเงิน" oninput="calculate()">
       </div>
     </div>
     <div class="calc-box">
@@ -791,7 +801,7 @@
 
 </div><!-- /tab-meter -->
 
-<!-- ══════════════════════════════════════════ -->
+<!-- ═══════  ══════════════════════════════════ -->
 <!--  TAB 2: รายรับ-รายจ่าย                    -->
 <!-- ══════════════════════════════════════════ -->
 <div id="tab-expense" class="tab-panel">
@@ -1283,7 +1293,7 @@ var MONTHS = ["มกราคม","กุมภาพันธ์","มีน�
               "กรกฎาคม","สิงหาคม","กันยายน","ตุลาคม","พฤศจิกายน","ธันวาคม"];
 
 var INCOME_CATS  = ["ค่าน้ำประปา","เงินช่วยเหลือ/อุดหนุน","เงินบำรุงรักษา","รายรับอื่นๆ"];
-var EXPENSE_CATS = ["ค่าไฟฟ้า","ค่าซ่อมบำรุงท่อ","ค่าสารเคมี","ค่าอะไหล่/วัสดุ","ค่าจ้างแรงงาน","ค่าบริหารจัดการ","รายจ่ายอื่นๆ"];
+var EXPENSE_CATS = ["ค่าไฟฟ้า","ค่าซ่อมบ  รุงท่อ","ค่าสารเคมี","ค่าอะไหล่/วัสดุ","ค่าจ้างแรงงาน","ค่าบริหารจัดการ","รายจ่ายอื่นๆ"];
 
 // ══════════════════════════════════
 // STATE
@@ -1392,6 +1402,7 @@ function switchTab(tab, btn) {
 // ══════════════════════════════════════════════════════
 var adminPassword   = null;   // เก็บรหัสไว้ในหน่วยความจำหลังล็อกอินสำเร็จ
 var adminAuthed     = false;
+var adminEditingKey = null;   // บ้านเลขที่ที่กำลังแก้ไขแบบ inline (null = ไม่ได้แก้)
 
 function initAdminTab() {
   // ถ้ายังไม่ได้ล็อกอิน — โชว์หน้าใส่รหัส
@@ -1435,6 +1446,7 @@ async function adminLogin() {
 function adminLogout() {
   adminAuthed   = false;
   adminPassword = null;
+  adminEditingKey = null;
   initAdminTab();
 }
 
@@ -1461,19 +1473,47 @@ function renderAdminHouses() {
   }
 
   box.innerHTML = list.map(function(v){
-    var h  = String(v.house).replace(/'/g,"\\'");
-    var nm = String(v.name || '').replace(/'/g,"\\'");
+    var key = String(v.house);
+    var keyAttr = key.replace(/"/g,'&quot;');
+
+    // โหมดแก้ไขแถวนี้ — แสดงช่องกรอกแยก บ้านเลขที่ / ชื่อเจ้าของบ้าน
+    if (adminEditingKey !== null && String(adminEditingKey) === key) {
+      return '<div class="ah-row ah-editing" data-key="' + keyAttr + '">' +
+               '<div class="ah-edit-fields">' +
+                 '<div class="ah-fld">' +
+                   '<label class="ah-flbl">บ้านเลขที่</label>' +
+                   '<input type="text" class="ah-input" id="edHouse_' + escHtml(key) + '" value="' + escHtml(v.house) + '" placeholder="เช่น 9/1">' +
+                 '</div>' +
+                 '<div class="ah-fld">' +
+                   '<label class="ah-flbl">ชื่อเจ้าของบ้าน</label>' +
+                   '<input type="text" class="ah-input" id="edName_' + escHtml(key) + '" value="' + escHtml(v.name || '') + '" placeholder="พิมพ์ชื่อ...">' +
+                 '</div>' +
+               '</div>' +
+               '<div class="ah-acts">' +
+                 '<button class="ah-btn save" title="บันทึก" onclick="adminSaveEdit(\'' + key.replace(/'/g,"\\'") + '\')"><i class="fa-solid fa-check"></i></button>' +
+                 '<button class="ah-btn cancel" title="ยกเลิก" onclick="adminCancelEdit()"><i class="fa-solid fa-xmark"></i></button>' +
+               '</div>' +
+             '</div>';
+    }
+
+    // โหมดปกติ
     return '<div class="ah-row">' +
              '<div class="ah-info">' +
                '<div class="ah-no">บ้าน ' + escHtml(v.house) + '</div>' +
                '<div class="ah-name">' + (v.name ? escHtml(v.name) : '<i style="color:#bbb;">(ยังไม่มีชื่อ)</i>') + '</div>' +
              '</div>' +
              '<div class="ah-acts">' +
-               '<button class="ah-btn edit" title="แก้ไข" onclick="adminEditHouse(\'' + h + '\',\'' + nm + '\')"><i class="fa-solid fa-pen"></i></button>' +
-               '<button class="ah-btn del" title="ลบ" onclick="adminDeleteHouse(\'' + h + '\')"><i class="fa-solid fa-trash"></i></button>' +
+               '<button class="ah-btn edit" title="แก้ไข" onclick="adminEditHouse(\'' + key.replace(/'/g,"\\'") + '\')"><i class="fa-solid fa-pen"></i></button>' +
+               '<button class="ah-btn del" title="ลบ" onclick="adminDeleteHouse(\'' + key.replace(/'/g,"\\'") + '\')"><i class="fa-solid fa-trash"></i></button>' +
              '</div>' +
            '</div>';
   }).join('');
+
+  // โฟกัสช่องแรกของแถวที่กำลังแก้ไข
+  if (adminEditingKey !== null) {
+    var fEl = document.getElementById('edHouse_' + adminEditingKey);
+    if (fEl) { fEl.focus(); fEl.select(); }
+  }
 }
 
 function escHtml(s) {
@@ -1502,27 +1542,42 @@ async function adminAddHouse() {
   }
 }
 
-function adminEditHouse(oldHouse, oldName) {
-  var newHouse = prompt('แก้ไขบ้านเลขที่:', oldHouse);
-  if (newHouse === null) return;
-  newHouse = newHouse.trim();
-  if (!newHouse) return alert('บ้านเลขที่ห้ามว่าง');
-
-  var newName = prompt('แก้ไขชื่อเจ้าบ้าน:', oldName || '');
-  if (newName === null) return;
-  newName = newName.trim();
-
-  _doUpdateHouse(oldHouse, newHouse, newName);
+// เปิดโหมดแก้ไขแบบ inline ในแถวนั้น
+function adminEditHouse(house) {
+  adminEditingKey = String(house);
+  renderAdminHouses();
 }
 
-async function _doUpdateHouse(oldHouse, newHouse, newName) {
+// ยกเลิกการแก้ไข
+function adminCancelEdit() {
+  adminEditingKey = null;
+  renderAdminHouses();
+}
+
+// บันทึกการแก้ไขจากช่องกรอกในแถว
+async function adminSaveEdit(oldHouse) {
+  var hEl = document.getElementById('edHouse_' + oldHouse);
+  var nEl = document.getElementById('edName_'  + oldHouse);
+  if (!hEl || !nEl) return;
+
+  var newHouse = hEl.value.trim();
+  var newName  = nEl.value.trim();
+  if (!newHouse) { alert('กรุณากรอกบ้านเลขที่'); hEl.focus(); return; }
+
+  // ถ้าไม่มีการเปลี่ยนแปลง ก็แค่ปิดโหมดแก้ไข
+  var item = villagersData.find(function(v){ return String(v.house) === String(oldHouse); });
+  if (item && String(item.house) === newHouse && String(item.name || '') === newName) {
+    adminCancelEdit();
+    return;
+  }
+
   showLoading('กำลังบันทึกการแก้ไข...','โปรดรอสักครู่');
   try {
     var res = await api('updateHouse', {
       password: adminPassword, oldHouse: oldHouse, house: newHouse, name: newName
     });
-    var item = villagersData.find(function(v){ return String(v.house) === String(oldHouse); });
     if (item) { item.house = newHouse; item.name = newName; }
+    adminEditingKey = null;
     rebuildHouseInputs();
     renderAdminHouses();
     hideLoading();
@@ -2404,7 +2459,7 @@ function renderBulkList() {
       var stCls, stLabel;
       if (String(r.status) === 'Paid')   { stCls = 'paid';    stLabel = '✓ จ่ายแล้ว'; }
       else if (isPend)                   { stCls = 'pending'; stLabel = '⏳ รอเลขหลัง'; }
-      else                               { stCls = 'unpaid';  stLabel = '🕐 ค้างจ่าย'; }
+      else                               { stCls = 'unpaid';  stLabel = '🕐 ค  างจ่าย'; }
       var rowCls = 'bulk-cb-label is-' + (stCls === 'paid' ? 'paid' : stCls === 'pending' ? 'pend' : 'unpaid');
       var cbId   = 'bk_' + r.houseNo + '_' + r.year + '_' + r.month;
       var price  = (!isPend && r.price) ? Number(r.price).toLocaleString() : '—';
