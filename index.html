@@ -1099,10 +1099,16 @@
         <input type="text" id="adminSearch" class="filter-inp" placeholder="เลขที่ / ชื่อ..."
                oninput="renderAdminHouses()" autocomplete="off">
       </div>
-      <div style="font-size:0.74rem;color:var(--gray-400);margin-bottom:6px;">
-        ทั้งหมด <b id="adminHouseCount">0</b> หลัง
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;flex-wrap:wrap;gap:4px;">
+        <div style="font-size:0.74rem;color:var(--gray-400);">
+          ทั้งหมด <b id="adminHouseCount">0</b> รายการ
+        </div>
+        <div id="adminHouseSummary" style="font-size:0.72rem;color:var(--gray-500);"></div>
       </div>
-      <div id="adminHouseList"></div>
+      <div id="adminHouseList"
+        style="max-height:60vh;overflow-y:auto;-webkit-overflow-scrolling:touch;
+               border:1px solid var(--gray-100);border-radius:8px;margin-top:4px;">
+      </div>
     </div>
 
     <button class="btn btn-outline" style="width:100%;margin-top:14px;" onclick="adminLogout()">
@@ -1455,69 +1461,108 @@ function renderAdminHouses() {
   if (!box) return;
   var q = (document.getElementById('adminSearch').value || '').trim().toLowerCase();
 
-  var list = (villagersData || []).slice().sort(function(a,b){
-    return String(a.house).localeCompare(String(b.house), 'th', { numeric: true });
+  var list = (villagersData || []).slice().sort(function(a, b) {
+    var ha = String(a.house || ''), hb = String(b.house || '');
+    if (ha && !hb) return -1;
+    if (!ha && hb) return 1;
+    if (!ha && !hb) return String(a.name||'').localeCompare(String(b.name||''), 'th');
+    return ha.localeCompare(hb, 'th', { numeric: true });
   });
+
   if (q) {
-    list = list.filter(function(v){
-      return String(v.house).toLowerCase().includes(q) ||
-             String(v.name || '').toLowerCase().includes(q);
+    list = list.filter(function(v) {
+      return String(v.house||'').toLowerCase().includes(q) ||
+             String(v.name ||'').toLowerCase().includes(q);
     });
   }
 
-  document.getElementById('adminHouseCount').textContent = (villagersData || []).length;
+  var total        = (villagersData||[]).length;
+  var withHouse    = (villagersData||[]).filter(function(v){ return v.house && v.house.trim(); }).length;
+  var withoutHouse = total - withHouse;
+
+  document.getElementById('adminHouseCount').textContent = total;
+
+  var sumEl = document.getElementById('adminHouseSummary');
+  if (sumEl) sumEl.innerHTML =
+    '<span style="color:var(--blue);font-weight:700;">'+withHouse+'</span> มีเลขที่ &nbsp;|&nbsp; ' +
+    '<span style="color:var(--yellow);font-weight:700;">'+withoutHouse+'</span> ไม่มีเลขที่';
 
   if (!list.length) {
     box.innerHTML = '<div class="ah-empty">— ไม่พบข้อมูล —</div>';
     return;
   }
 
-  box.innerHTML = list.map(function(v){
-    var key = String(v.house);
-    var keyAttr = key.replace(/"/g,'&quot;');
+  var shownNoHouseHeader = false;
+  box.innerHTML = list.map(function(v) {
+    var editKey  = String(v.rowIndex !== undefined ? v.rowIndex : (v.house || v.name || ''));
+    var keyJs    = editKey.replace(/'/g, "\\'");
+    var hasHouse = v.house && v.house.trim();
+    var hasName  = v.name  && v.name.trim();
 
-    // โหมดแก้ไขแถวนี้ — แสดงช่องกรอกแยก บ้านเลขที่ / ชื่อเจ้าของบ้าน
-    if (adminEditingKey !== null && String(adminEditingKey) === key) {
-      return '<div class="ah-row ah-editing" data-key="' + keyAttr + '">' +
-               '<div class="ah-edit-fields">' +
-                 '<div class="ah-fld">' +
-                   '<label class="ah-flbl">บ้านเลขที่</label>' +
-                   '<input type="text" class="ah-input" id="edHouse_' + escHtml(key) + '" value="' + escHtml(v.house) + '" placeholder="เช่น 9/1">' +
-                 '</div>' +
-                 '<div class="ah-fld">' +
-                   '<label class="ah-flbl">ชื่อเจ้าของบ้าน</label>' +
-                   '<input type="text" class="ah-input" id="edName_' + escHtml(key) + '" value="' + escHtml(v.name || '') + '" placeholder="พิมพ์ชื่อ...">' +
-                 '</div>' +
-               '</div>' +
-               '<div class="ah-acts">' +
-                 '<button class="ah-btn save" title="บันทึก" onclick="adminSaveEdit(\'' + key.replace(/'/g,"\\'") + '\')"><i class="fa-solid fa-check"></i></button>' +
-                 '<button class="ah-btn cancel" title="ยกเลิก" onclick="adminCancelEdit()"><i class="fa-solid fa-xmark"></i></button>' +
-               '</div>' +
-             '</div>';
+    var separator = '';
+    if (!hasHouse && !shownNoHouseHeader) {
+      shownNoHouseHeader = true;
+      separator = '<div style="padding:5px 10px;background:var(--yellow-light);' +
+        'border-top:1px solid #fcd34d;border-bottom:1px solid #fcd34d;' +
+        'font-size:0.68rem;font-weight:700;color:#92400e;' +
+        'display:flex;align-items:center;gap:5px;">' +
+        '<i class="fa-solid fa-triangle-exclamation"></i> ' +
+        'ยังไม่มีเลขที่บ้าน ('+withoutHouse+' รายการ) — กด ✏️ เพื่อเพิ่มเลขที่</div>';
     }
 
-   // โหมดปกติ — แสดงทั้งบ้านเลขที่ + ชื่อเจ้าบ้านในกล่องแยกชัดเจน
-    var hasName = v.name && v.name.trim();
-    return '<div class="ah-row" style="padding:10px 8px;border-bottom:1px solid #f0f0f0;">' +
-             '<div style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:0;">' +
-               '<div style="display:flex;align-items:center;gap:8px;">' +
-                 '<span style="background:#e8f0fe;color:#1341b0;font-size:0.7rem;font-weight:800;padding:2px 8px;border-radius:5px;white-space:nowrap;flex-shrink:0;">บ้าน ' + escHtml(v.house) + '</span>' +
-               '</div>' +
-               '<div style="display:flex;align-items:center;gap:5px;margin-top:3px;">' +
-                 '<i class="fa-solid fa-user" style="font-size:10px;color:#9ca3af;flex-shrink:0;"></i>' +
-                 (hasName
-                   ? '<span style="font-size:0.83rem;color:#374151;font-weight:600;">' + escHtml(v.name) + '</span>'
-                   : '<span style="font-size:0.78rem;color:#d1d5db;font-style:italic;">ยังไม่ระบุชื่อ — กด ✏️ เพื่อเพิ่ม</span>') +
-               '</div>' +
-             '</div>' +
-             '<div class="ah-acts">' +
-               '<button class="ah-btn edit" title="แก้ไขบ้านเลขที่และชื่อ" onclick="adminEditHouse(\'' + key.replace(/'/g,"\\'") + '\')"><i class="fa-solid fa-pen"></i></button>' +
-               '<button class="ah-btn del" title="ลบ" onclick="adminDeleteHouse(\'' + key.replace(/'/g,"\\'") + '\')"><i class="fa-solid fa-trash"></i></button>' +
-             '</div>' +
-           '</div>';
+    // โหมดแก้ไข inline
+    if (adminEditingKey !== null && String(adminEditingKey) === editKey) {
+      return separator +
+        '<div class="ah-row ah-editing">' +
+          '<div class="ah-edit-fields">' +
+            '<div class="ah-fld">' +
+              '<label class="ah-flbl">บ้านเลขที่</label>' +
+              '<input type="text" class="ah-input" id="edHouse_'+editKey+'" ' +
+                'value="'+escHtml(v.house||'')+'" placeholder="เช่น 9/1">' +
+            '</div>' +
+            '<div class="ah-fld">' +
+              '<label class="ah-flbl">ชื่อเจ้าของบ้าน</label>' +
+              '<input type="text" class="ah-input" id="edName_'+editKey+'" ' +
+                'value="'+escHtml(v.name||'')+'" placeholder="พิมพ์ชื่อ...">' +
+            '</div>' +
+          '</div>' +
+          '<div class="ah-acts">' +
+            '<button class="ah-btn save" onclick="adminSaveEdit(\''+keyJs+'\')">'+
+              '<i class="fa-solid fa-check"></i></button>' +
+            '<button class="ah-btn cancel" onclick="adminCancelEdit()">'+
+              '<i class="fa-solid fa-xmark"></i></button>' +
+          '</div>' +
+        '</div>';
+    }
+
+    // โหมดปกติ
+    var houseBadge = hasHouse
+      ? '<span style="background:#e8f0fe;color:#1341b0;font-size:0.68rem;font-weight:800;'+
+          'padding:2px 9px;border-radius:5px;white-space:nowrap;">บ้าน '+escHtml(v.house)+'</span>'
+      : '<span style="background:#fef3c7;color:#92400e;font-size:0.68rem;font-weight:700;'+
+          'padding:2px 8px;border-radius:5px;border:1px dashed #f59e0b;white-space:nowrap;">'+
+          '⚠ ไม่มีเลขที่บ้าน</span>';
+
+    return separator +
+      '<div class="ah-row" style="padding:9px 8px;border-bottom:1px solid #f5f5f5;">' +
+        '<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;">' +
+          '<div>'+houseBadge+'</div>' +
+          '<div style="display:flex;align-items:center;gap:5px;">' +
+            '<i class="fa-solid fa-user" style="font-size:10px;color:#9ca3af;"></i>' +
+            (hasName
+              ? '<span style="font-size:0.84rem;color:#374151;font-weight:600;">'+escHtml(v.name)+'</span>'
+              : '<span style="font-size:0.78rem;color:#d1d5db;font-style:italic;">ยังไม่ระบุชื่อ</span>') +
+          '</div>' +
+        '</div>' +
+        '<div class="ah-acts">' +
+          '<button class="ah-btn edit" onclick="adminEditHouse(\''+keyJs+'\')">'+
+            '<i class="fa-solid fa-pen"></i></button>' +
+          '<button class="ah-btn del" onclick="adminDeleteHouse(\''+keyJs+'\')">'+
+            '<i class="fa-solid fa-trash"></i></button>' +
+        '</div>' +
+      '</div>';
   }).join('');
 
-  // โฟกัสช่องแรกของแถวที่กำลังแก้ไข
   if (adminEditingKey !== null) {
     var fEl = document.getElementById('edHouse_' + adminEditingKey);
     if (fEl) { fEl.focus(); fEl.select(); }
@@ -1551,8 +1596,8 @@ async function adminAddHouse() {
 }
 
 // เปิดโหมดแก้ไขแบบ inline ในแถวนั้น
-function adminEditHouse(house) {
-  adminEditingKey = String(house);
+function adminEditHouse(editKey) {
+  adminEditingKey = String(editKey);
   renderAdminHouses();
 }
 
@@ -1563,28 +1608,38 @@ function adminCancelEdit() {
 }
 
 // บันทึกการแก้ไขจากช่องกรอกในแถว
-async function adminSaveEdit(oldHouse) {
-  var hEl = document.getElementById('edHouse_' + oldHouse);
-  var nEl = document.getElementById('edName_'  + oldHouse);
+async function adminSaveEdit(editKey) {
+  var hEl = document.getElementById('edHouse_' + editKey);
+  var nEl = document.getElementById('edName_'  + editKey);
   if (!hEl || !nEl) return;
 
   var newHouse = hEl.value.trim();
   var newName  = nEl.value.trim();
-  if (!newHouse) { alert('กรุณากรอกบ้านเลขที่'); hEl.focus(); return; }
-
-  // ถ้าไม่มีการเปลี่ยนแปลง ก็แค่ปิดโหมดแก้ไข
-  var item = villagersData.find(function(v){ return String(v.house) === String(oldHouse); });
-  if (item && String(item.house) === newHouse && String(item.name || '') === newName) {
-    adminCancelEdit();
-    return;
+  if (!newHouse && !newName) {
+    alert('กรุณากรอกอย่างน้อยบ้านเลขที่ หรือ ชื่อเจ้าบ้าน');
+    hEl.focus(); return;
   }
 
-  showLoading('กำลังบันทึกการแก้ไข...','โปรดรอสักครู่');
+  var item = villagersData.find(function(v) {
+    return String(v.rowIndex !== undefined ? v.rowIndex : (v.house||v.name||'')) === String(editKey);
+  });
+  if (!item) { adminCancelEdit(); return; }
+
+  if (String(item.house||'') === newHouse && String(item.name||'') === newName) {
+    adminCancelEdit(); return;
+  }
+
+  showLoading('กำลังบันทึกการแก้ไข...', 'โปรดรอสักครู่');
   try {
     var res = await api('updateHouse', {
-      password: adminPassword, oldHouse: oldHouse, house: newHouse, name: newName
+      password: adminPassword,
+      rowIndex: item.rowIndex,
+      oldHouse: item.house || '',
+      house:    newHouse,
+      name:     newName
     });
-    if (item) { item.house = newHouse; item.name = newName; }
+    item.house = newHouse;
+    item.name  = newName;
     adminEditingKey = null;
     rebuildHouseInputs();
     renderAdminHouses();
@@ -1596,12 +1651,25 @@ async function adminSaveEdit(oldHouse) {
   }
 }
 
-async function adminDeleteHouse(house) {
-  if (!confirm('ยืนยันการลบบ้านเลขที่ ' + house + '?\n\n⚠️ ลบเฉพาะรายชื่อในระบบ ไม่ลบประวัติมิเตอร์')) return;
-  showLoading('กำลังลบ...','โปรดรอสักครู่');
+async function adminDeleteHouse(editKey) {
+  var item = villagersData.find(function(v) {
+    return String(v.rowIndex !== undefined ? v.rowIndex : (v.house||v.name||'')) === String(editKey);
+  });
+  if (!item) return;
+
+  var label = item.house ? 'บ้านเลขที่ '+item.house : 'ชื่อ '+item.name;
+  if (!confirm('ยืนยันการลบ '+label+'?\n\n⚠️ ลบเฉพาะรายชื่อในระบบ ไม่ลบประวัติมิเตอร์')) return;
+
+  showLoading('กำลังลบ...', '');
   try {
-    var res = await api('deleteHouse', { password: adminPassword, house: house });
-    villagersData = villagersData.filter(function(v){ return String(v.house) !== String(house); });
+    var res = await api('deleteHouse', {
+      password: adminPassword,
+      rowIndex: item.rowIndex,
+      house:    item.house || ''
+    });
+    villagersData = villagersData.filter(function(v) {
+      return String(v.rowIndex !== undefined ? v.rowIndex : (v.house||v.name||'')) !== String(editKey);
+    });
     rebuildHouseInputs();
     renderAdminHouses();
     hideLoading();
