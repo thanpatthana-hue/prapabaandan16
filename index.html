@@ -288,6 +288,18 @@
     .filter-badge.yellow { background: var(--yellow); color: #1c1c1c; }
     .btn-clear { font-size: 0.72rem; color: var(--red); background: none; border: 1px solid var(--red); border-radius: 20px; padding: 3px 11px; cursor: pointer; }
     .btn-clear:active { background: var(--red); color: white; }
+    /* ── Admin house list ── */
+    .ah-row { display: flex; align-items: center; gap: 10px; padding: 9px 6px; border-bottom: 1px solid var(--gray-100, #f0f0f0); }
+    .ah-row:last-child { border-bottom: none; }
+    .ah-info { flex: 1; min-width: 0; }
+    .ah-no { font-weight: 800; color: var(--blue-dark); font-size: 0.92rem; }
+    .ah-name { font-size: 0.76rem; color: var(--gray-400); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .ah-acts { display: flex; gap: 6px; flex-shrink: 0; }
+    .ah-btn { width: 34px; height: 34px; border-radius: 8px; border: 1.5px solid; background: white; cursor: pointer; font-size: 13px; display: flex; align-items: center; justify-content: center; }
+    .ah-btn.edit { border-color: var(--blue); color: var(--blue); }
+    .ah-btn.del { border-color: var(--red); color: var(--red); background: var(--red-light); }
+    .ah-btn:active { transform: scale(0.94); }
+    .ah-empty { text-align: center; color: var(--gray-400); font-size: 0.82rem; padding: 18px 0; }
 
     /* ═══ TABLE ═══ */
     .table-wrap { background: white; border-radius: 0 0 var(--radius) var(--radius); max-height: 55vh; overflow-y: auto; -webkit-overflow-scrolling: touch; border: 1px solid var(--gray-200); border-top: none; margin: 0 10px 10px; }
@@ -577,6 +589,10 @@
       <i class="fa-solid fa-file-chart-column"></i>
       <span>รายงาน</span>
     </button>
+    <button class="tab-btn" onclick="switchTab('admin',this)">
+      <i class="fa-solid fa-house-circle-check"></i>
+      <span>บ้านเลขที่</span>
+    </button>
   </div>
 </div>
 
@@ -651,13 +667,13 @@
       </div>
       <div class="calc-divider"></div>
       <div class="calc-item">
-        <div class="calc-label">ยอดเง��น</div>
+        <div class="calc-label">ยอดเงิน</div>
         <div class="calc-val"><span id="p">0</span> ฿</div>
       </div>
     </div>
     <div class="btn-row">
       <button id="btnUnpaid" class="btn btn-unpaid" onclick="btnSave('Unpaid')">
-        <i class="fa-regular fa-clock"></i> บันทึกค้างจ่าย
+        <i class="fa-regular fa-clock"></i> บัน   ึกค้างจ่าย
       </button>
       <button id="btnPaid" class="btn btn-paid" onclick="btnSave('Paid')">
         <i class="fa-solid fa-check"></i> จ่ายเงินแล้ว
@@ -668,7 +684,7 @@
   <!-- SECTION: สรุปภาพรวม -->
   <div class="section-header">
     <div class="section-header-line"></div>
-    <div class="section-header-text"><i class="fa-solid fa-chart-pie"></i> สรุปภาพรวมปี <span id="sum-year">—</span></div>
+    <div class="section-header-text"><i class="fa-solid fa-chart-pie"></i> สรุ  ภาพรวมปี <span id="sum-year">—</span></div>
     <div class="section-header-line"></div>
   </div>
 
@@ -907,7 +923,7 @@
 
 <!-- ══════════════════════════════════════════ -->
 <!--  TAB 3: รายงาน                             -->
-<!-- ══════════════════════════════════════════ -->
+<!-- ══════  ═══════════════════════════════════ -->
 <div id="tab-report" class="tab-panel">
 
   <div class="section-header" style="margin-top:12px;">
@@ -943,11 +959,11 @@
 
     <div id="rptMonthsSection" style="display:none;">
   <div class="card-title" style="margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid var(--gray-100);">
-    <i class="fa-regular fa-calendar-check" style="color:var(--blue);font-size:13px;"></i> เลือกเดือนที่��้องการ
+    <i class="fa-regular fa-calendar-check" style="color:var(--blue);font-size:13px;"></i> เลือกเดือนที่ต้องการ
   </div>
   <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;padding:7px 10px;background:var(--blue-light);border-radius:8px;border:1.5px solid #b6ccfb;">
     <input type="checkbox" id="monthSelectAll" checked style="width:16px;height:16px;accent-color:var(--blue);cursor:pointer;" onchange="toggleAllMonths(this.checked)">
-    <label for="monthSelectAll" style="font-size:0.82rem;font-weight:700;color:var(--blue-dark);cursor:pointer;">เลือกทั้งหมด / ยกเลิกทั้งหมด</label>
+    <label for="monthSelectAll" style="font-size:0.82rem;font-weight:700;color:var(--blue-dark);cursor:pointer;">เลือกทั้งหมด / ยกเลิกทั้ง  มด</label>
   </div>
   <div class="month-checkboxes" id="monthCheckboxes"></div>
 </div>
@@ -958,7 +974,7 @@
 
     <div class="export-btn-row">
       <button class="export-btn export-btn-pdf" onclick="exportPDF()">
-        <i class="fa-solid fa-file-pdf"></i> ส่งออก PDF
+        <i class="fa-solid fa-file-pdf"></i> ส่งออ    PDF
       </button>
       <button class="export-btn export-btn-word" onclick="exportWord()">
         <i class="fa-solid fa-file-word"></i> ส่งออก Word
@@ -1011,6 +1027,81 @@
   </div>
 
 </div><!-- /tab-report -->
+
+<!-- ══════════════════════════════════════════ -->
+<!--  TAB 4: บ้านเลขที่ (Admin)                  -->
+<!-- ══════════════════════════════════════════ -->
+<div id="tab-admin" class="tab-panel">
+
+  <!-- LOCK SCREEN -->
+  <div id="adminLock" class="card" style="margin-top:16px;text-align:center;">
+    <div style="font-size:42px;color:var(--blue);margin-bottom:6px;"><i class="fa-solid fa-lock"></i></div>
+    <div class="card-title" style="justify-content:center;">โหมดผู้ดูแล (Admin)</div>
+    <p style="color:var(--gray-400);font-size:0.82rem;margin:4px 0 16px;">
+      กรุณาใส่รหัสผ่านเพื่อจัดการชื่อและบ้านเลขที่
+    </p>
+    <div style="max-width:280px;margin:0 auto;">
+      <input type="password" id="adminPass" class="form-input" placeholder="รหัสผ่าน"
+             autocomplete="off" inputmode="numeric"
+             onkeydown="if(event.key==='Enter')adminLogin()">
+      <button class="btn btn-blue" style="width:100%;margin-top:12px;" onclick="adminLogin()">
+        <i class="fa-solid fa-unlock"></i> เข้าสู่ระบบ
+      </button>
+      <div id="adminLockErr" style="color:var(--red,#dc2626);font-size:0.8rem;margin-top:10px;display:none;"></div>
+    </div>
+  </div>
+
+  <!-- ADMIN PANEL -->
+  <div id="adminPanel" style="display:none;">
+
+    <!-- เพิ่มบ้านเลขที่ใหม่ -->
+    <div class="section-header" style="margin-top:14px;">
+      <div class="section-header-line"></div>
+      <div class="section-header-text"><i class="fa-solid fa-plus"></i> เพิ่มบ้านเลขที่ใหม่</div>
+      <div class="section-header-line"></div>
+    </div>
+    <div class="card">
+      <div class="row">
+        <div class="col-5">
+          <label class="lbl accent-blue">บ้านเลขที่</label>
+          <input type="text" id="newHouseNo" class="form-input" placeholder="เช่น 9/1" autocomplete="off">
+        </div>
+        <div class="col-7">
+          <label class="lbl">ชื่อเจ้าบ้าน</label>
+          <input type="text" id="newHouseName" class="form-input" placeholder="พิมพ์ชื่อ..." autocomplete="off">
+        </div>
+      </div>
+      <button class="btn btn-blue" style="width:100%;margin-top:12px;" onclick="adminAddHouse()">
+        <i class="fa-solid fa-floppy-disk"></i> บันทึกเพิ่มบ้าน
+      </button>
+    </div>
+
+    <!-- รายชื่อบ้านเลขที่ -->
+    <div class="section-header" style="margin-top:14px;">
+      <div class="section-header-line"></div>
+      <div class="section-header-text"><i class="fa-solid fa-list"></i> รายชื่อบ้านทั้งหมด</div>
+      <div class="section-header-line"></div>
+    </div>
+
+    <div class="card" style="padding:10px 12px;">
+      <div class="filter-bar" style="margin-bottom:8px;">
+        <span class="filter-lbl"><i class="fa-solid fa-magnifying-glass" style="font-size:10px;"></i> ค้นหา</span>
+        <input type="text" id="adminSearch" class="filter-inp" placeholder="เลขที่ / ชื่อ..."
+               oninput="renderAdminHouses()" autocomplete="off">
+      </div>
+      <div style="font-size:0.74rem;color:var(--gray-400);margin-bottom:6px;">
+        ทั้งหมด <b id="adminHouseCount">0</b> หลัง
+      </div>
+      <div id="adminHouseList"></div>
+    </div>
+
+    <button class="btn btn-outline" style="width:100%;margin-top:14px;" onclick="adminLogout()">
+      <i class="fa-solid fa-right-from-bracket"></i> ออกจากโหมดผู้ดูแล
+    </button>
+  </div>
+
+</div><!-- /tab-admin -->
+
 
 </div><!-- /wrap -->
 
@@ -1209,7 +1300,7 @@ var _lastReportData    = null;
 
 // ══════════════════════════════════════════════════════
 // API Helper — JSONP (ไม่มีปัญหา CORS เลย)
-// ═══════════════════════════════════════════════════��══
+// ══════════════════════════════════════════════════════
 var SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzNvu6-aEJaORCqOK4HR4b0tW_xvTcJj8WSTmKv0RHg8AHgQtcxUe6MCoROHk0mxNC58A/exec';
 
 var _isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
@@ -1293,6 +1384,179 @@ function switchTab(tab, btn) {
   btn.classList.add('active');
   if (tab === 'expense') renderExpenses();
   if (tab === 'report')  { initReportTab(); renderCharts(); }
+  if (tab === 'admin')   initAdminTab();
+}
+
+// ══════════════════════════════════════════════════════
+// 🔐 ADMIN — จัดการชื่อ/บ้านเลขที่ (เชื่อม Google Sheet โดยตรง)
+// ══════════════════════════════════════════════════════
+var adminPassword   = null;   // เก็บรหัสไว้ในหน่วยความจำหลังล็อกอินสำเร็จ
+var adminAuthed     = false;
+
+function initAdminTab() {
+  // ถ้ายังไม่ได้ล็อกอิน — โชว์หน้าใส่รหัส
+  if (adminAuthed) {
+    document.getElementById('adminLock').style.display  = 'none';
+    document.getElementById('adminPanel').style.display = 'block';
+    renderAdminHouses();
+  } else {
+    document.getElementById('adminLock').style.display  = 'block';
+    document.getElementById('adminPanel').style.display = 'none';
+    document.getElementById('adminPass').value = '';
+    document.getElementById('adminLockErr').style.display = 'none';
+    setTimeout(function(){ var el=document.getElementById('adminPass'); if(el) el.focus(); }, 150);
+  }
+}
+
+async function adminLogin() {
+  var pass = document.getElementById('adminPass').value.trim();
+  var errEl = document.getElementById('adminLockErr');
+  errEl.style.display = 'none';
+  if (!pass) { errEl.textContent = 'กรุณาใส่รหัสผ่าน'; errEl.style.display = 'block'; return; }
+
+  showLoading('กำลังตรวจสอบรหัส...','โปรดรอสักครู่');
+  try {
+    var res = await api('verifyAdmin', { password: pass });
+    hideLoading();
+    if (res && res.ok) {
+      adminPassword = pass;
+      adminAuthed   = true;
+      initAdminTab();
+    } else {
+      errEl.textContent = 'รหัสผ่านไม่ถูกต้อง'; errEl.style.display = 'block';
+    }
+  } catch(e) {
+    hideLoading();
+    errEl.textContent = e.message || 'รหัสผ่านไม่ถูกต้อง';
+    errEl.style.display = 'block';
+  }
+}
+
+function adminLogout() {
+  adminAuthed   = false;
+  adminPassword = null;
+  initAdminTab();
+}
+
+function renderAdminHouses() {
+  var box = document.getElementById('adminHouseList');
+  if (!box) return;
+  var q = (document.getElementById('adminSearch').value || '').trim().toLowerCase();
+
+  var list = (villagersData || []).slice().sort(function(a,b){
+    return String(a.house).localeCompare(String(b.house), 'th', { numeric: true });
+  });
+  if (q) {
+    list = list.filter(function(v){
+      return String(v.house).toLowerCase().includes(q) ||
+             String(v.name || '').toLowerCase().includes(q);
+    });
+  }
+
+  document.getElementById('adminHouseCount').textContent = (villagersData || []).length;
+
+  if (!list.length) {
+    box.innerHTML = '<div class="ah-empty">— ไม่พบข้อมูล —</div>';
+    return;
+  }
+
+  box.innerHTML = list.map(function(v){
+    var h  = String(v.house).replace(/'/g,"\\'");
+    var nm = String(v.name || '').replace(/'/g,"\\'");
+    return '<div class="ah-row">' +
+             '<div class="ah-info">' +
+               '<div class="ah-no">บ้าน ' + escHtml(v.house) + '</div>' +
+               '<div class="ah-name">' + (v.name ? escHtml(v.name) : '<i style="color:#bbb;">(ยังไม่มีชื่อ)</i>') + '</div>' +
+             '</div>' +
+             '<div class="ah-acts">' +
+               '<button class="ah-btn edit" title="แก้ไข" onclick="adminEditHouse(\'' + h + '\',\'' + nm + '\')"><i class="fa-solid fa-pen"></i></button>' +
+               '<button class="ah-btn del" title="ลบ" onclick="adminDeleteHouse(\'' + h + '\')"><i class="fa-solid fa-trash"></i></button>' +
+             '</div>' +
+           '</div>';
+  }).join('');
+}
+
+function escHtml(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+async function adminAddHouse() {
+  var house = document.getElementById('newHouseNo').value.trim();
+  var name  = document.getElementById('newHouseName').value.trim();
+  if (!house) return alert('กรุณากรอกบ้านเลขที่');
+
+  showLoading('กำลังบันทึก...','โปรดรอสักครู่');
+  try {
+    var res = await api('addHouse', { password: adminPassword, house: house, name: name });
+    villagersData.push({ house: house, name: name });
+    document.getElementById('newHouseNo').value   = '';
+    document.getElementById('newHouseName').value = '';
+    rebuildHouseInputs();
+    renderAdminHouses();
+    hideLoading();
+    alert(res);
+  } catch(e) {
+    hideLoading();
+    alert('เกิดข้อผิดพลาด: ' + e.message);
+  }
+}
+
+function adminEditHouse(oldHouse, oldName) {
+  var newHouse = prompt('แก้ไขบ้านเลขที่:', oldHouse);
+  if (newHouse === null) return;
+  newHouse = newHouse.trim();
+  if (!newHouse) return alert('บ้านเลขที่ห้ามว่าง');
+
+  var newName = prompt('แก้ไขชื่อเจ้าบ้าน:', oldName || '');
+  if (newName === null) return;
+  newName = newName.trim();
+
+  _doUpdateHouse(oldHouse, newHouse, newName);
+}
+
+async function _doUpdateHouse(oldHouse, newHouse, newName) {
+  showLoading('กำลังบันทึกการแก้ไข...','โปรดรอสักครู่');
+  try {
+    var res = await api('updateHouse', {
+      password: adminPassword, oldHouse: oldHouse, house: newHouse, name: newName
+    });
+    var item = villagersData.find(function(v){ return String(v.house) === String(oldHouse); });
+    if (item) { item.house = newHouse; item.name = newName; }
+    rebuildHouseInputs();
+    renderAdminHouses();
+    hideLoading();
+    alert(res);
+  } catch(e) {
+    hideLoading();
+    alert('เกิดข้อผิดพลาด: ' + e.message);
+  }
+}
+
+async function adminDeleteHouse(house) {
+  if (!confirm('ยืนยันการลบบ้านเลขที่ ' + house + '?\n\n⚠️ ลบเฉพาะรายชื่อในระบบ ไม่ลบประวัติมิเตอร์')) return;
+  showLoading('กำลังลบ...','โปรดรอสักครู่');
+  try {
+    var res = await api('deleteHouse', { password: adminPassword, house: house });
+    villagersData = villagersData.filter(function(v){ return String(v.house) !== String(house); });
+    rebuildHouseInputs();
+    renderAdminHouses();
+    hideLoading();
+    alert(res);
+  } catch(e) {
+    hideLoading();
+    alert('เกิดข้อผิดพลาด: ' + e.message);
+  }
+}
+
+// อัปเดต datalist กรองบ้าน หลังเพิ่ม/แก้/ลบ
+function rebuildHouseInputs() {
+  var dl = document.getElementById('filterHouseList');
+  if (dl) {
+    dl.innerHTML = villagersData.map(function(v){
+      return '<option value="' + escHtml(v.house) + '">';
+    }).join('');
+  }
 }
 
 // ══════════════════════════════════════════════════════
@@ -1306,7 +1570,7 @@ function renderCharts() {
   if (typeof Chart === 'undefined') return;
   if (!allRecords || !allRecords.length) return;
 
-  var MONTHS_TH = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน',
+  var MONTHS_TH = ['มกราคม','กุมภาพันธ  ','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน',
                    'กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
 
   // ── นับสถานะ ──
@@ -2608,7 +2872,7 @@ function exportPDF() {
   }, 400);
 }
 
-// ══════════════════════════════════
+// ═   ════════════════════════════════
 // EXPORT WORD (.doc)
 // ══════════════════════════════════
 function exportWord() {
@@ -2685,8 +2949,8 @@ function buildReportHTML(data, manager, forWord) {
 
     + '<p style="text-indent:2.5cm;margin:4px 0;"><b>เรื่อง</b>&nbsp;&nbsp;&nbsp;&nbsp;รายงานค่าใช้จ่ายระบบประปาหมู่บ้าน '+periodLabel+'</p>'
     + '<p style="margin:4px 0;"><b>เรียน</b>&nbsp;&nbsp;&nbsp;&nbsp;นายจักรกฤษณ์ ประกาสิทธิ์ นายกเทศมนตรีตำบลฝายกวาง</p>'
-    + '<p style="text-indent:2.5cm;margin:12px 0;">ด้วยข้าพเจ้า <b>'+manager+'</b> ผู้ดูแลระบบประปาหมู่บ้าน หมู่ที่ 9 บ้านใหม่เจริญไพร '
-    + 'ตำบลฝายกวาง อำเภอเชียงคำ จังหวัดพะเยา ขอรายงานผลการดำเนินงานระบบประปาหมู่บ้าน '+periodLabel
+    + '<p style="text-indent:2.5cm;margin:12px 0;">ด้วยข้าพเจ้า <b>'+manager+'</b> ผู้ดูแลระบบประปาห   ู่บ้าน หมู่ที่ 9 บ้านใหม่เจริญไพร '
+    + 'ตำบลฝายกวาง อำเภอเ  ียงคำ จังหวัดพะเยา ขอรายงานผลการดำเนินงานระบบประปาหมู่บ้าน '+periodLabel
     + ' สรุปรายละเอียดดังต่อไปนี้</p>'
     // เพิ่มใน buildReportHTML หลัง <p>ด้วยข้าพเจ้า...จึงขอรายงาน...</p>
 
@@ -2709,7 +2973,7 @@ function buildReportHTML(data, manager, forWord) {
     // ── สรุปรายรับ-รายจ่าย ──
     + '<p style="text-indent:2.5cm;margin:8px 0;"><b>๑. สรุปผลรายรับ-รายจ่าย</b></p>'
     + '<table><thead><tr>'
-    + '<th>เดือน</th><th>บ้านทั้งหมด</th><th>จ่ายแล้ว</th><th>ค้างจ่าย</th><th>หน่วย</th>'
+    + '<th>เดือน</th><th>บ้  นทั้งหมด</th><th>จ่ายแล้ว</th><th>ค้างจ่าย</th><th>หน่วย</th>'
     + '<th>รายรับ (฿)</th><th>ค้างจ่าย (฿)</th><th>รายจ่าย (฿)</th>'
     + '</tr></thead><tbody>'
     + monthRows
