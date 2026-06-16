@@ -1315,7 +1315,7 @@ var _reportType        = 'year';
 var _lastReportData    = null;
 
 // ══════════════════════════════════════════════════════
-// API Helper — JSONP (ไม่มีปัญหา CORS เลย)
+// API Helper — fetch (รองรับ iOS Safari / iPhone / Android ทุกตัว)
 // ══════════════════════════════════════════════════════
 var SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzNvu6-aEJaORCqOK4HR4b0tW_xvTcJj8WSTmKv0RHg8AHgQtcxUe6MCoROHk0mxNC58A/exec';
 
@@ -1327,17 +1327,9 @@ var API_RETRY_DELAY = 2000;
 function api(action, params, _retry) {
   _retry = _retry || 0;
   return new Promise(function(resolve, reject) {
-    var cbName = '__cb_' + Date.now() + '_' + Math.random().toString(36).slice(2);
-    var script = document.createElement('script');
     var done = false;
 
-    function cleanup() {
-      delete window[cbName];
-      if (script.parentNode) script.parentNode.removeChild(script);
-    }
-
     function doRetry(errMsg) {
-      cleanup();
       if (_retry < API_MAX_RETRY) {
         var attempt = _retry + 1;
         var subEl = document.getElementById('loadingSub');
@@ -1355,26 +1347,27 @@ function api(action, params, _retry) {
       doRetry('หมดเวลาเชื่อมต่อ (timeout)');
     }, API_TIMEOUT);
 
-    window[cbName] = function(json) {
-      if (done) return; done = true;
-      clearTimeout(timer);
-      cleanup();
-      if (json && json.ok) resolve(json.data);
-      else reject(new Error((json && json.error) || 'เกิดข้อผิดพลาด'));
-    };
+    var url = SCRIPT_URL
+      + '?action='  + encodeURIComponent(action)
+      + '&params='  + encodeURIComponent(JSON.stringify(params || {}))
+      + '&_t='      + Date.now();
 
-    script.onerror = function() {
-      if (done) return; done = true;
-      clearTimeout(timer);
-      doRetry('ไม่สามารถโหลด script ได้');
-    };
-
-    script.src = SCRIPT_URL
-      + '?action='   + encodeURIComponent(action)
-      + '&params='   + encodeURIComponent(JSON.stringify(params || {}))
-      + '&callback=' + cbName
-      + '&_t='       + Date.now();
-    document.body.appendChild(script);
+    fetch(url, { method: 'GET', redirect: 'follow' })
+      .then(function(res) {
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        return res.json();
+      })
+      .then(function(json) {
+        if (done) return; done = true;
+        clearTimeout(timer);
+        if (json && json.ok) resolve(json.data);
+        else reject(new Error((json && json.error) || 'เกิดข้อผิดพลาด'));
+      })
+      .catch(function(err) {
+        if (done) return; done = true;
+        clearTimeout(timer);
+        doRetry('ไม่สามารถเชื่อมต่อ Google Apps Script ได้');
+      });
   });
 }
 
