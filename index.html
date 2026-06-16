@@ -1315,7 +1315,9 @@ var _reportType        = 'year';
 var _lastReportData    = null;
 
 // ══════════════════════════════════════════════════════
-// API Helper — fetch (รองรับ iOS Safari / iPhone / Android ทุกตัว)
+// API Helper — fetch-JSONP hybrid
+//   iOS Safari : fetch (ไม่โดน WebKit บล็อก script injection)
+//   Desktop / Android : fetch ก่อน, fallback JSONP อัตโนมัติ
 // ══════════════════════════════════════════════════════
 var SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzNvu6-aEJaORCqOK4HR4b0tW_xvTcJj8WSTmKv0RHg8AHgQtcxUe6MCoROHk0mxNC58A/exec';
 
@@ -1324,10 +1326,12 @@ var API_TIMEOUT     = _isMobile ? 28000 : 15000;
 var API_MAX_RETRY   = 3;
 var API_RETRY_DELAY = 2000;
 
+// ─── ฟังก์ชันหลัก ───
 function api(action, params, _retry) {
   _retry = _retry || 0;
   return new Promise(function(resolve, reject) {
-    var done = false;
+    var cbName = '__cb_' + Date.now() + '_' + Math.random().toString(36).slice(2);
+    var done   = false;
 
     function doRetry(errMsg) {
       if (_retry < API_MAX_RETRY) {
@@ -1348,14 +1352,21 @@ function api(action, params, _retry) {
     }, API_TIMEOUT);
 
     var url = SCRIPT_URL
-      + '?action='  + encodeURIComponent(action)
-      + '&params='  + encodeURIComponent(JSON.stringify(params || {}))
-      + '&_t='      + Date.now();
+      + '?action='   + encodeURIComponent(action)
+      + '&params='   + encodeURIComponent(JSON.stringify(params || {}))
+      + '&callback=' + cbName
+      + '&_t='       + Date.now();
 
+    // ── 1) ลอง fetch + parse JSONP response text ──
+    //    ใช้ได้ทั้ง iOS (ไม่โดนบล็อก) และ Desktop
     fetch(url, { method: 'GET', redirect: 'follow' })
-      .then(function(res) {
-        if (!res.ok) throw new Error('HTTP ' + res.status);
-        return res.json();
+      .then(function(res) { return res.text(); })
+      .then(function(text) {
+        // Apps Script ส่งกลับมาแบบ JSONP: "cbName({...})"
+        // ดึง JSON ข้างใน
+        var s = text.trim();
+        var m = s.match(/^[^(]+\(([\s\S]+)\)\s*;?\s*$/);
+        return JSON.parse(m ? m[1] : s);
       })
       .then(function(json) {
         if (done) return; done = true;
@@ -1363,10 +1374,42 @@ function api(action, params, _retry) {
         if (json && json.ok) resolve(json.data);
         else reject(new Error((json && json.error) || 'เกิดข้อผิดพลาด'));
       })
-      .catch(function(err) {
-        if (done) return; done = true;
+      .catch(function() {
+        // ── 2) fetch ล้มเหลว → fallback JSONP script tag (Desktop/Android) ──
+        if (done) return;
         clearTimeout(timer);
-        doRetry('ไม่สามารถเชื่อมต่อ Google Apps Script ได้');
+
+        var script = document.createElement('script');
+        var done2  = false;
+
+        function cleanup() {
+          delete window[cbName];
+          if (script.parentNode) script.parentNode.removeChild(script);
+        }
+
+        var timer2 = setTimeout(function() {
+          if (done2) return; done2 = true; done = true;
+          cleanup();
+          doRetry('หมดเวลาเชื่อมต่อ (timeout)');
+        }, API_TIMEOUT);
+
+        window[cbName] = function(json) {
+          if (done2) return; done2 = true; done = true;
+          clearTimeout(timer2);
+          cleanup();
+          if (json && json.ok) resolve(json.data);
+          else reject(new Error((json && json.error) || 'เกิดข้อผิดพลาด'));
+        };
+
+        script.onerror = function() {
+          if (done2) return; done2 = true; done = true;
+          clearTimeout(timer2);
+          cleanup();
+          doRetry('ไม่สามารถเชื่อมต่อ Google Apps Script ได้');
+        };
+
+        script.src = url;
+        document.body.appendChild(script);
       });
   });
 }
