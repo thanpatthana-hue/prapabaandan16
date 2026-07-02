@@ -2052,7 +2052,8 @@ function calculate() {
   if (!b || !a) { document.getElementById('u').innerText = '0'; document.getElementById('p').innerText = '0'; return; }
   var u = Number(a) >= Number(b) ? Number(a) - Number(b) : 0;
   document.getElementById('u').innerText = u.toLocaleString();
-  document.getElementById('p').innerText = (u * 7).toLocaleString();
+  var p = u <= 2 ? 20 : u * 7;
+  document.getElementById('p').innerText = p.toLocaleString();
 }
 
 // ══════════════════════════════════
@@ -2408,7 +2409,8 @@ function editCalculate() {
   }
   var u = Number(a) - Number(b);
   document.getElementById('editUnit').innerText  = u.toLocaleString();
-  document.getElementById('editPrice').innerText = (u*7).toLocaleString();
+  var p = u <= 2 ? 20 : u * 7;
+  document.getElementById('editPrice').innerText = p.toLocaleString();
 }
 
 async function saveEditRecord(status) {
