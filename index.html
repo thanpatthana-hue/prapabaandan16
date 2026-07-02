@@ -1746,7 +1746,7 @@ function renderCharts() {
   allRecords.forEach(function(r) {
     var isPend = String(r.status) !== 'Paid' && (r.after === '' || r.after === null || r.after === undefined);
     houses[r.houseNo] = true;
-    if (String(r.status) === 'Paid') { paid++; totalIncome += (Number(r.price) || 0); }
+    if (String(r.status) === 'Paid') { paid++; totalIncome += calcWaterPrice(r.unit); }
     else if (isPend) pend++;
     else unpaid++;
   });
@@ -1783,7 +1783,7 @@ function renderCharts() {
   MONTHS_TH.forEach(function(m) {
     var total = 0;
     allRecords.filter(function(r){ return String(r.year) === latestYear && r.month === m && String(r.status) === 'Paid'; })
-              .forEach(function(r){ total += Number(r.price)||0; });
+              .forEach(function(r){ total += calcWaterPrice(r.unit); });
     barLabels.push(m.substring(0,3));
     barData.push(total);
   });
@@ -1828,7 +1828,7 @@ function renderCharts() {
     var yr=k.split('_')[0], mo=k.split('_')[1];
     var total = 0;
     allRecords.filter(function(r){ return String(r.year)===yr && r.month===mo && String(r.status)==='Paid'; })
-              .forEach(function(r){ total += Number(r.price)||0; });
+              .forEach(function(r){ total += calcWaterPrice(r.unit); });
     lineLabels.push(mo.substring(0,3)+' '+yr.slice(-2));
     lineData.push(total);
   });
@@ -2046,6 +2046,11 @@ function setStatusHint(type, html) {
 // ══════════════════════════════════
 // CALCULATE
 // ══════════════════════════════════
+function calcWaterPrice(unit) {
+  var u = Number(unit) || 0;
+  return u <= 2 ? 20 : u * 7;
+}
+
 function calculate() {
   var b = document.getElementById('meterBefore').value;
   var a = document.getElementById('meterAfter').value;
@@ -2142,7 +2147,7 @@ async function changeStatus(r, newStatus, rowId) {
     return;
   }
   var msg = newStatus === 'Paid'
-    ? 'ยืนยันการชำระเงิน\n\nบ้าน ' + r.houseNo + '  ' + (r.name||'') + '\nเดือน ' + r.month + '/' + r.year + '\nยอด ' + Number(r.price).toLocaleString() + ' บาท'
+    ? 'ยืนยันการชำระเงิน\n\nบ้าน ' + r.houseNo + '  ' + (r.name||'') + '\nเดือน ' + r.month + '/' + r.year + '\nยอด ' + calcWaterPrice(r.unit).toLocaleString() + ' บาท'
     : 'เปลี่ยนสถานะเป็น "ค้างจ่าย"\n\nบ้าน ' + r.houseNo + '  ' + (r.name||'') + '\nเดือน ' + r.month + '/' + r.year;
   if (!confirm(msg)) return;
   var form = {
@@ -2183,11 +2188,11 @@ function renderAll() {
     if (!isPend) {
       ms[mKey].hasAfter++; ms[mKey].totalUnit += Number(r.unit)||0;
       if (String(r.status) === 'Paid') {
-        ms[mKey].paidPrice += Number(r.price)||0; ms[mKey].paid++;
-        totalUnit += Number(r.unit)||0; totalPaidPrice += Number(r.price)||0;
+        ms[mKey].paidPrice += calcWaterPrice(r.unit); ms[mKey].paid++;
+        totalUnit += Number(r.unit)||0; totalPaidPrice += calcWaterPrice(r.unit);
       } else {
-        ms[mKey].unpaidPrice += Number(r.price)||0;
-        totalUnpaidPrice += Number(r.price)||0;
+        ms[mKey].unpaidPrice += calcWaterPrice(r.unit);
+        totalUnpaidPrice += calcWaterPrice(r.unit);
       }
     } else if (String(r.status) === 'Paid') { ms[mKey].paid++; }
   });
@@ -2302,7 +2307,7 @@ function renderAll() {
              + '</div>';
 
       var unitCell  = pend ? '<span class="td-dash">—</span>' : '<span class="td-unit">'+r.unit+'</span>';
-      var priceCell = pend ? '<span class="td-dash">—</span>' : '<span class="td-price">'+Number(r.price).toLocaleString()+'</span>';
+      var priceCell = pend ? '<span class="td-dash">—</span>' : '<span class="td-price">'+calcWaterPrice(r.unit).toLocaleString()+'</span>';
 
       html += '<tr style="'+rb+'">'
             + '<td style="text-align:left;padding-left:10px;"><div class="td-house-no">'+r.houseNo+'</div><div class="td-house-name">'+(r.name||'-')+'</div></td>'
@@ -2467,7 +2472,7 @@ function closeApAlert() {
 function printReceipt(r) { _buildReceipt(r, function(){}); }
 
 function _buildReceipt(r, onDone) {
-  var price  = Number(r.price).toLocaleString('th-TH');
+  var price  = calcWaterPrice(r.unit).toLocaleString('th-TH');
   var before = (r.before!==''&&r.before!=null) ? String(r.before) : '—';
   var after  = (r.after !==''&&r.after !=null) ? String(r.after)  : '—';
   var d      = new Date().toLocaleDateString('th-TH', {year:'numeric',month:'long',day:'numeric'});
@@ -2576,7 +2581,7 @@ function renderBulkList() {
       else                               { stCls = 'unpaid';  stLabel = '🕐 ค  างจ่าย'; }
       var rowCls = 'bulk-cb-label is-' + (stCls === 'paid' ? 'paid' : stCls === 'pending' ? 'pend' : 'unpaid');
       var cbId   = 'bk_' + r.houseNo + '_' + r.year + '_' + r.month;
-      var price  = (!isPend && r.price) ? Number(r.price).toLocaleString() : '—';
+      var price  = !isPend ? calcWaterPrice(r.unit).toLocaleString() : '—';
 
       html += '<label class="'+rowCls+'" for="'+cbId+'">'
             + '<input type="checkbox" id="'+cbId+'" class="bulk-cb-item" checked'
@@ -2653,7 +2658,7 @@ function doBulkPrint() {
     var isPend  = String(r.status) !== 'Paid' && (r.after === '' || r.after === null || r.after === undefined);
     var before  = (r.before !== '' && r.before != null) ? String(r.before) : '—';
     var after   = (r.after  !== '' && r.after  != null) ? String(r.after)  : '—';
-    var price   = (!isPend && r.price) ? Number(r.price).toLocaleString() : '0';
+    var price   = !isPend ? calcWaterPrice(r.unit).toLocaleString() : '0';
     var isPaid  = String(r.status) === 'Paid';
     var stClass = isPaid ? 'paid' : (isPend ? 'pend' : 'unpaid');
     var stLabel = isPaid ? '✓ ชำระเงินแล้ว' : (isPend ? '⏳ ยังไม่มีเลขอ่านหลัง' : '⚠ ยังไม่ชำระเงิน');
