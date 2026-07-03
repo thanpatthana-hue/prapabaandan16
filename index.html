@@ -2531,86 +2531,23 @@ function closeApAlert() {
 // ══════════════════════════════════
 // PRINT RECEIPT
 // ══════════════════════════════════
-function printReceipt(r) { _buildReceipt(r, function(){}); }
-
-function _buildReceipt(r, onDone) {
-  var prevUnpaid = getPreviousUnpaidAmount(r.houseNo, r.year, r.month);
-  var currentAmt = (r.after !== '' && r.after != null && r.before !== '' && r.before != null) ? calcWaterPrice(r.unit) : 0;
-  var totalAmt   = currentAmt + prevUnpaid;
-  var price      = totalAmt.toLocaleString('th-TH');
-  var currentPriceStr = currentAmt.toLocaleString('th-TH');
-  var before = (r.before!==''&&r.before!=null) ? String(r.before) : '—';
-  var after  = (r.after !==''&&r.after !=null) ? String(r.after)  : '—';
-  var d      = new Date().toLocaleDateString('th-TH', {year:'numeric',month:'long',day:'numeric'});
-  var isPaid = r.status === 'Paid';
-  var hasDebt = prevUnpaid > 0;
-  var W=464, H= hasDebt ? 1100 : 980;
-  var canvas = document.createElement('canvas'); canvas.width=W; canvas.height=H;
-  var ctx = canvas.getContext('2d',{alpha:false});
-  ctx.fillStyle='#ffffff'; ctx.fillRect(0,0,W,H);
-  function line(y){ ctx.save(); ctx.setLineDash([4,3]); ctx.strokeStyle='#cccccc'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(16,y); ctx.lineTo(W-16,y); ctx.stroke(); ctx.restore(); }
-  function solidLine(y){ ctx.save(); ctx.strokeStyle='#333333'; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(16,y); ctx.lineTo(W-16,y); ctx.stroke(); ctx.restore(); }
-  function txt(text,x,y,size,weight,color,align){ ctx.font=(weight||'400')+' '+(size||26)+'px Arial,sans-serif'; ctx.fillStyle=color||'#111111'; ctx.textAlign=align||'left'; ctx.textBaseline='middle'; ctx.fillText(text,x,y); }
-  function row2(label,value,y){ txt(label,20,y,24,'400','#555555','left'); txt(value,W-20,y,26,'700','#111111','right'); }
-  var cy=28;
-  txt('ใบแจ้งค่าน้ำประปา',W/2,cy,30,'900','#111111','center'); cy+=40;
-  txt('หมู่ 16 บ้านฐานพัฒนา',W/2,cy,22,'400','#555555','center'); cy+=28; solidLine(cy); cy+=22;
-  row2('บ้านเลขที่',String(r.houseNo),cy); cy+=42;
-  row2('ชื่อเจ้าบ้าน',String(r.name||'—'),cy); cy+=42;
-  row2('เดือน',r.month,cy); cy+=42; row2('ปี',String(r.year),cy); cy+=20; solidLine(cy); cy+=22;
-  row2('เลขเดิม',before,cy); cy+=42; row2('เลขใหม่',after,cy); cy+=42; row2('ใช้ไป',r.unit+' หน่วย',cy); cy+=20; solidLine(cy); cy+=26;
-  if (hasDebt) {
-    txt('ค่าน้ำเดือนนี้',W/2,cy,22,'400','#555555','center'); cy+=34;
-    txt(currentPriceStr+' บาท',W/2,cy,34,'700','#333333','center'); cy+=40;
-    line(cy); cy+=20;
-    ctx.fillStyle='#fff7ed'; ctx.fillRect(10,cy-6,W-20,52); cy+=4;
-    txt('⚠ ยอดค้างจ่ายเดือนก่อน',W/2,cy,22,'700','#92400e','center'); cy+=30;
-    txt(prevUnpaid.toLocaleString('th-TH')+' บาท',W/2,cy,30,'800','#e3a008','center'); cy+=40;
-    line(cy); cy+=20;
-    txt('ยอดรวมที่ต้องชำระ',W/2,cy,24,'400','#555555','center'); cy+=38;
-  } else {
-    txt('ยอดที่ต้องชำระ',W/2,cy,24,'400','#555555','center'); cy+=38;
-  }
-  txt(price+' บาท',W/2,cy,46,'900','#111111','center'); cy+=52; solidLine(cy); cy+=24;
-  txt(isPaid?'✓ ชำระเงินแล้ว':'! ยังไม่ชำระเงิน',W/2,cy,26,'700',isPaid?'#065f46':'#92400e','center'); cy+=38;
-  line(cy); cy+=22; txt('ขอบคุณที่ชำระค่าบริการ',W/2,cy,22,'400','#888888','center'); cy+=30; txt(d,W/2,cy,20,'400','#aaaaaa','center'); cy+=36;
-  // ── วาด QR Code ──
-  var qrImg = new Image();
-  qrImg.onload = function() {
-    var qrW = 220, qrH = Math.round(220 * qrImg.height / qrImg.width);
-    var qrX = (W - qrW) / 2;
-    ctx.strokeStyle='#cccccc'; ctx.lineWidth=1;
-    ctx.strokeRect(qrX-4, cy-4, qrW+8, qrH+8);
-    ctx.drawImage(qrImg, qrX, cy, qrW, qrH); cy += qrH + 14;
-    txt('สแกนจ่ายค่าน้ำ',W/2,cy,20,'600','#444444','center');
-    var fnPng='receipt-'+r.houseNo+'-'+r.month+r.year+'.png';
-    try {
-      var dataUrl=canvas.toDataURL('image/png');
-      var arr=dataUrl.split(','),bStr=atob(arr[1]),n=bStr.length,u8=new Uint8Array(n);
-      for(var i=0;i<n;i++) u8[i]=bStr.charCodeAt(i);
-      var blob=new Blob([u8],{type:'image/png'}); var filePng=new File([blob],fnPng,{type:'image/png'});
-      onDone();
-      var canShare=!!(navigator.share&&navigator.canShare&&navigator.canShare({files:[filePng]}));
-      if(canShare){ navigator.share({files:[filePng],title:'ใบแจ้งค่าน้ำ บ้าน '+r.houseNo+' '+r.month+' '+r.year,text:'ค่าน้ำประปา '+price+' บาท'}).catch(function(e){ if(e.name!=='AbortError') _fallbackDownload(blob,fnPng); }); }
-      else { var win=window.open(); if(win){ win.document.write('<img src="'+dataUrl+'" style="max-width:100%">'); win.document.title=fnPng; } else { _fallbackDownload(blob,fnPng); } }
-    } catch(e) { onDone(); alert('สร้างรูปไม่สำเร็จ: '+e.message); }
-  };
-  qrImg.onerror = function() {
-    // fallback: save without QR
-    var fnPng='receipt-'+r.houseNo+'-'+r.month+r.year+'.png';
-    try {
-      var dataUrl=canvas.toDataURL('image/png');
-      var arr=dataUrl.split(','),bStr=atob(arr[1]),n=bStr.length,u8=new Uint8Array(n);
-      for(var i=0;i<n;i++) u8[i]=bStr.charCodeAt(i);
-      var blob=new Blob([u8],{type:'image/png'}); var filePng=new File([blob],fnPng,{type:'image/png'});
-      onDone();
-      var canShare=!!(navigator.share&&navigator.canShare&&navigator.canShare({files:[filePng]}));
-      if(canShare){ navigator.share({files:[filePng],title:'ใบแจ้งค่าน้ำ บ้าน '+r.houseNo+' '+r.month+' '+r.year,text:'ค่าน้ำประปา '+price+' บาท'}).catch(function(e){ if(e.name!=='AbortError') _fallbackDownload(blob,fnPng); }); }
-      else { var win=window.open(); if(win){ win.document.write('<img src="'+dataUrl+'" style="max-width:100%">'); win.document.title=fnPng; } else { _fallbackDownload(blob,fnPng); } }
-    } catch(e) { onDone(); alert('สร้างรูปไม่สำเร็จ: '+e.message); }
-  };
-  qrImg.src = QR_DATA_URL;
+function printReceipt(r) {
+  // แชร์เฉพาะ QR Code และชื่อบัญชี (ประหยัดพื้นที่กระดาษ)
+  var price = ((r.after !== '' && r.after != null && r.before !== '' && r.before != null) ? calcWaterPrice(r.unit) : 0).toLocaleString('th-TH');
+  var fnJpg = 'qr-payment-'+r.houseNo+'-'+r.month+r.year+'.jpg';
+  try {
+    var arr = QR_DATA_URL.split(',');
+    var mime = arr[0].match(/:(.*?);/)[1];
+    var bStr = atob(arr[1]), n = bStr.length, u8 = new Uint8Array(n);
+    for(var i = 0; i < n; i++) u8[i] = bStr.charCodeAt(i);
+    var blob = new Blob([u8], {type: mime});
+    var fileImg = new File([blob], fnJpg, {type: mime});
+    var canShare = !!(navigator.share && navigator.canShare && navigator.canShare({files: [fileImg]}));
+    if(canShare){ navigator.share({files:[fileImg],title:'QR ชำระค่าน้ำ บ้าน '+r.houseNo+' '+r.month+' '+r.year,text:'สแกน QR จ่ายค่าน้ำ '+price+' บาท'}).catch(function(e){ if(e.name!=='AbortError') _fallbackDownload(blob,fnJpg); }); }
+    else { var win=window.open(); if(win){ win.document.write('<img src="'+QR_DATA_URL+'" style="max-width:100%">'); win.document.title=fnJpg; } else { _fallbackDownload(blob,fnJpg); } }
+  } catch(e) { alert('สร้างรูปไม่สำเร็จ: '+e.message); }
 }
+
 
 function _fallbackDownload(blob,fn){ var url=URL.createObjectURL(blob); var a=document.createElement('a'); a.href=url; a.download=fn; a.click(); setTimeout(function(){ URL.revokeObjectURL(url); },5000); }
 
