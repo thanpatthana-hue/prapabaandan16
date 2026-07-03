@@ -2532,20 +2532,163 @@ function closeApAlert() {
 // PRINT RECEIPT
 // ══════════════════════════════════
 function printReceipt(r) {
-  // แชร์เฉพาะ QR Code และชื่อบัญชี (ประหยัดพื้นที่กระดาษ)
-  var price = ((r.after !== '' && r.after != null && r.before !== '' && r.before != null) ? calcWaterPrice(r.unit) : 0).toLocaleString('th-TH');
-  var fnJpg = 'qr-payment-'+r.houseNo+'-'+r.month+r.year+'.jpg';
-  try {
-    var arr = QR_DATA_URL.split(',');
-    var mime = arr[0].match(/:(.*?);/)[1];
-    var bStr = atob(arr[1]), n = bStr.length, u8 = new Uint8Array(n);
-    for(var i = 0; i < n; i++) u8[i] = bStr.charCodeAt(i);
-    var blob = new Blob([u8], {type: mime});
-    var fileImg = new File([blob], fnJpg, {type: mime});
-    var canShare = !!(navigator.share && navigator.canShare && navigator.canShare({files: [fileImg]}));
-    if(canShare){ navigator.share({files:[fileImg],title:'QR ชำระค่าน้ำ บ้าน '+r.houseNo+' '+r.month+' '+r.year,text:'สแกน QR จ่ายค่าน้ำ '+price+' บาท'}).catch(function(e){ if(e.name!=='AbortError') _fallbackDownload(blob,fnJpg); }); }
-    else { var win=window.open(); if(win){ win.document.write('<img src="'+QR_DATA_URL+'" style="max-width:100%">'); win.document.title=fnJpg; } else { _fallbackDownload(blob,fnJpg); } }
-  } catch(e) { alert('สร้างรูปไม่สำเร็จ: '+e.message); }
+  var isPend  = String(r.status) !== 'Paid' && (r.after === '' || r.after === null || r.after === undefined);
+  var isPaid  = String(r.status) === 'Paid';
+  var before  = (r.before !== '' && r.before != null) ? String(r.before) : '—';
+  var after   = (r.after  !== '' && r.after  != null) ? String(r.after)  : '—';
+  var price   = !isPend ? calcWaterPrice(r.unit).toLocaleString('th-TH') : '0';
+  var units   = isPend ? '—' : (r.unit||0) + ' หน่วย';
+  var prevUnpaidAmt = getPreviousUnpaidAmount(r.houseNo, r.year, r.month);
+  var currentAmt = !isPend ? calcWaterPrice(r.unit) : 0;
+  var totalAmt   = currentAmt + prevUnpaidAmt;
+  var stLabel = isPaid ? '✓ ชำระเงินแล้ว' : (isPend ? '⏳ ยังไม่มีเลขอ่านหลัง' : '! ยังไม่ชำระเงิน');
+  var stColor = isPaid ? '#065f46' : (isPend ? '#9a3412' : '#b45309');
+  var today   = new Date().toLocaleDateString('th-TH', {year:'numeric', month:'long', day:'numeric'});
+
+  var qrImg = new Image();
+  qrImg.onload = function() {
+    var W = 520, PAD = 28, ROW_H = 34;
+    var qrW = W - PAD * 2;
+    var qrH = (qrImg.naturalHeight / qrImg.naturalWidth) * qrW;
+    var FONT = "700 17px 'Sarabun', 'Noto Sans Thai', sans-serif";
+
+    // Calculate canvas height
+    var H = PAD + 32 + 22 + 14 + (ROW_H * 4) + 14 + (ROW_H * 3) + 14;
+    if (prevUnpaidAmt > 0) { H += ROW_H * 2 + 14; }
+    H += 22 + 54 + 14 + 36 + 16 + 24 + 22 + 20 + 8 + qrH + PAD;
+
+    var canvas = document.createElement('canvas');
+    canvas.width  = W;
+    canvas.height = Math.ceil(H);
+    var ctx = canvas.getContext('2d');
+
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, W, H);
+
+    function line(y) {
+      ctx.save(); ctx.strokeStyle = '#cccccc'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(PAD, y); ctx.lineTo(W - PAD, y); ctx.stroke(); ctx.restore();
+    }
+    function row(label, val, y, bold) {
+      ctx.save();
+      ctx.font = '17px ' + "'Sarabun','Noto Sans Thai',sans-serif";
+      ctx.fillStyle = '#374151'; ctx.textAlign = 'left';
+      ctx.fillText(label, PAD, y);
+      ctx.font = (bold ? '700 ' : '') + "17px 'Sarabun','Noto Sans Thai',sans-serif";
+      ctx.fillStyle = '#111827'; ctx.textAlign = 'right';
+      ctx.fillText(val, W - PAD, y);
+      ctx.restore();
+    }
+
+    var y = PAD;
+
+    // Title
+    ctx.save();
+    ctx.font = "800 22px 'Sarabun','Noto Sans Thai',sans-serif";
+    ctx.fillStyle = '#111827'; ctx.textAlign = 'center';
+    ctx.fillText('ใบแจ้งค่าน้ำประปา', W/2, y + 24);
+    ctx.restore();
+    y += 30;
+
+    ctx.save();
+    ctx.font = "15px 'Sarabun','Noto Sans Thai',sans-serif";
+    ctx.fillStyle = '#6b7280'; ctx.textAlign = 'center';
+    ctx.fillText('หมู่ 16 บ้านฐานพัฒนา', W/2, y + 17);
+    ctx.restore();
+    y += 22;
+
+    y += 8; line(y); y += 12;
+
+    row('บ้านเลขที่', String(r.houseNo), y + 22, true); y += ROW_H;
+    row('ชื่อเจ้าบ้าน', r.name||'—', y + 22, true); y += ROW_H;
+    row('เดือน', String(r.month), y + 22, true); y += ROW_H;
+    row('ปี', String(r.year), y + 22, false); y += ROW_H;
+
+    line(y); y += 12;
+
+    row('เลขเดิม', before, y + 22, false); y += ROW_H;
+    row('เลขใหม่', after, y + 22, false); y += ROW_H;
+    row('ใช้ไป', units, y + 22, false); y += ROW_H;
+
+    line(y); y += 12;
+
+    if (prevUnpaidAmt > 0) {
+      ctx.save(); ctx.fillStyle = '#fff7ed';
+      ctx.fillRect(PAD, y, W - PAD*2, ROW_H); ctx.restore();
+      ctx.save();
+      ctx.font = "17px 'Sarabun','Noto Sans Thai',sans-serif";
+      ctx.fillStyle = '#92400e'; ctx.textAlign = 'left';
+      ctx.fillText('⚠ ค้างจ่ายเดือนก่อน', PAD+4, y+22);
+      ctx.font = "700 17px 'Sarabun','Noto Sans Thai',sans-serif";
+      ctx.fillStyle = '#e3a008'; ctx.textAlign = 'right';
+      ctx.fillText(prevUnpaidAmt.toLocaleString() + ' ฿', W-PAD-4, y+22);
+      ctx.restore(); y += ROW_H;
+      row('ค่าน้ำเดือนนี้', price + ' ฿', y+22, false); y += ROW_H;
+      line(y); y += 12;
+      ctx.save();
+      ctx.font = "15px 'Sarabun','Noto Sans Thai',sans-serif";
+      ctx.fillStyle='#6b7280'; ctx.textAlign='center';
+      ctx.fillText('ยอดรวมทั้งหมด', W/2, y+18); ctx.restore(); y+=24;
+      ctx.save();
+      ctx.font = "800 44px 'Sarabun','Noto Sans Thai',sans-serif";
+      ctx.fillStyle='#111827'; ctx.textAlign='center';
+      ctx.fillText(totalAmt.toLocaleString()+' บาท', W/2, y+46); ctx.restore(); y+=54;
+    } else {
+      ctx.save();
+      ctx.font = "15px 'Sarabun','Noto Sans Thai',sans-serif";
+      ctx.fillStyle='#6b7280'; ctx.textAlign='center';
+      ctx.fillText('ยอดที่ต้องชำระ', W/2, y+18); ctx.restore(); y+=24;
+      ctx.save();
+      ctx.font = "800 46px 'Sarabun','Noto Sans Thai',sans-serif";
+      ctx.fillStyle='#111827'; ctx.textAlign='center';
+      ctx.fillText(price+' บาท', W/2, y+50); ctx.restore(); y+=54;
+    }
+
+    line(y); y += 10;
+
+    ctx.save();
+    ctx.font = "700 17px 'Sarabun','Noto Sans Thai',sans-serif";
+    ctx.fillStyle = stColor; ctx.textAlign = 'center';
+    ctx.fillText(stLabel, W/2, y+22); ctx.restore(); y += 32;
+
+    // Dashed separator
+    ctx.save(); ctx.strokeStyle='#d1d5db'; ctx.lineWidth=1; ctx.setLineDash([4,4]);
+    ctx.beginPath(); ctx.moveTo(PAD,y); ctx.lineTo(W-PAD,y); ctx.stroke();
+    ctx.setLineDash([]); ctx.restore(); y += 14;
+
+    ctx.save();
+    ctx.font = "14px 'Sarabun','Noto Sans Thai',sans-serif";
+    ctx.fillStyle='#9ca3af'; ctx.textAlign='center';
+    ctx.fillText('ขอบคุณที่ชำระค่าบริการ', W/2, y+15); y+=22;
+    ctx.fillText(today, W/2, y+15); ctx.restore(); y+=22;
+
+    ctx.save();
+    ctx.font = "13px 'Sarabun','Noto Sans Thai',sans-serif";
+    ctx.fillStyle='#6b7280'; ctx.textAlign='center';
+    ctx.fillText('หน่วยล่ะ 7 บาท  |  ไม่ใช้น้ำค่ามิเตอร์ 0-2 หน่วย  20 บาท', W/2, y+14);
+    ctx.restore(); y += 20;
+
+    y += 4;
+    ctx.drawImage(qrImg, PAD, y, qrW, qrH);
+
+    canvas.toBlob(function(blob) {
+      if (!blob) { alert('สร้างรูปไม่สำเร็จ'); return; }
+      var fn = 'receipt-'+r.houseNo+'-'+r.month+String(r.year)+'.jpg';
+      var file = new File([blob], fn, {type: 'image/jpeg'});
+      var canShare = !!(navigator.share && navigator.canShare && navigator.canShare({files:[file]}));
+      if (canShare) {
+        navigator.share({
+          files: [file],
+          title: 'ใบแจ้งค่าน้ำ บ้าน '+r.houseNo+' '+r.month+' '+r.year,
+          text: 'ยอดชำระ '+price+' บาท'
+        }).catch(function(e){ if(e.name!=='AbortError') _fallbackDownload(blob,fn); });
+      } else {
+        _fallbackDownload(blob, fn);
+      }
+    }, 'image/jpeg', 0.92);
+  };
+  qrImg.onerror = function() { alert('โหลด QR ไม่สำเร็จ'); };
+  qrImg.src = QR_DATA_URL;
 }
 
 
