@@ -2221,6 +2221,22 @@ async function changeStatus(r, newStatus, rowId) {
   showLoading('กำลังอัปเดตสถานะ...','');
   try {
     var res = await api(newStatus === 'Paid' ? 'forceEditRecord' : 'saveRecord', { form });
+    // ── อัปเดตสถานะค้างจ่ายเดือนก่อนให้เป็น "จ่ายแล้ว" อัตโนมัติ ──
+    if (newStatus === 'Paid') {
+      var prevRecs = getPreviousUnpaidRecords(r.houseNo, r.year, r.month);
+      for (var pi = 0; pi < prevRecs.length; pi++) {
+        var pr = prevRecs[pi];
+        try {
+          await api('forceEditRecord', { form: {
+            year: String(pr.year), month: String(pr.month),
+            houseNo: String(pr.houseNo), ownerName: String(pr.name||''),
+            meterBefore: String(pr.before != null ? pr.before : ''),
+            meterAfter:  String(pr.after  != null ? pr.after  : ''),
+            status: 'Paid'
+          }});
+        } catch(e2) { console.warn('auto-mark paid failed:', e2.message); }
+      }
+    }
     hideLoading();
     await loadAllData();
   } catch(e) { hideLoading(); alert('เกิดข้อผิดพลาด: ' + e.message); }
@@ -2501,6 +2517,22 @@ async function saveEditRecord(status) {
   try {
     var actionName = _forceEdit ? 'forceEditRecord' : 'saveRecord';
     var res = await api(actionName, { form });
+    // ── อัปเดตสถานะค้างจ่ายเดือนก่อนให้เป็น "จ่ายแล้ว" อัตโนมัติ ──
+    if (status === 'Paid') {
+      var prevRecs = getPreviousUnpaidRecords(r.houseNo, r.year, r.month);
+      for (var pi = 0; pi < prevRecs.length; pi++) {
+        var pr = prevRecs[pi];
+        try {
+          await api('forceEditRecord', { form: {
+            year: String(pr.year), month: String(pr.month),
+            houseNo: String(pr.houseNo), ownerName: String(pr.name||''),
+            meterBefore: String(pr.before != null ? pr.before : ''),
+            meterAfter:  String(pr.after  != null ? pr.after  : ''),
+            status: 'Paid'
+          }});
+        } catch(e2) { console.warn('auto-mark paid failed:', e2.message); }
+      }
+    }
     hideLoading(); alert(res);
     document.getElementById('editBtnUnpaid').disabled = false;
     document.getElementById('editBtnPaid').disabled   = false;
