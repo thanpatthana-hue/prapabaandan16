@@ -2550,8 +2550,10 @@ function printReceipt(r) {
     var W = 520, PAD = 28, ROW_H = 34;
     var qrW = W - PAD * 2;
     // Crop out the colourful Krungthai header (~top 42%) \u2014 show only QR code + name
-    var qrCropStart = Math.floor(qrImg.naturalHeight * 0.42);
-    var qrCropSrc   = qrImg.naturalHeight - qrCropStart;
+    // Crop: skip colourful header + dark THAI-QR-PAYMENT bar; keep only white QR+name area
+    var qrCropStart = Math.floor(qrImg.naturalHeight * 0.53);
+    var qrCropEnd   = Math.floor(qrImg.naturalHeight * 0.88);
+    var qrCropSrc   = qrCropEnd - qrCropStart;
     var qrH         = (qrCropSrc / qrImg.naturalWidth) * qrW;  // cropped height on canvas
     var FONT = "700 17px 'Sarabun', 'Noto Sans Thai', sans-serif";
 
