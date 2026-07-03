@@ -2549,7 +2549,10 @@ function printReceipt(r) {
   qrImg.onload = function() {
     var W = 520, PAD = 28, ROW_H = 34;
     var qrW = W - PAD * 2;
-    var qrH = (qrImg.naturalHeight / qrImg.naturalWidth) * qrW;
+    // Crop out the colourful Krungthai header (~top 42%) \u2014 show only QR code + name
+    var qrCropStart = Math.floor(qrImg.naturalHeight * 0.42);
+    var qrCropSrc   = qrImg.naturalHeight - qrCropStart;
+    var qrH         = (qrCropSrc / qrImg.naturalWidth) * qrW;  // cropped height on canvas
     var FONT = "700 17px 'Sarabun', 'Noto Sans Thai', sans-serif";
 
     // Calculate canvas height
@@ -2669,7 +2672,7 @@ function printReceipt(r) {
     ctx.restore(); y += 20;
 
     y += 4;
-    ctx.drawImage(qrImg, PAD, y, qrW, qrH);
+    ctx.drawImage(qrImg, 0, qrCropStart, qrImg.naturalWidth, qrCropSrc, PAD, y, qrW, qrH);
 
     canvas.toBlob(function(blob) {
       if (!blob) { alert('สร้างรูปไม่สำเร็จ'); return; }
