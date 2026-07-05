@@ -531,19 +531,19 @@
       .receipt-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0; }
       .receipt-card {
         border: 1px dashed #999; padding: 10px 12px; page-break-inside: avoid;
-        font-size: 16pt; line-height: 1.75; break-inside: avoid;
+        font-size: 20pt; line-height: 1.75; break-inside: avoid;
       }
-      .receipt-card .rc-head { text-align: center; font-weight: 800; font-size: 20pt; margin-bottom: 2px; }
-      .receipt-card .rc-sub  { text-align: center; font-size: 14pt; color: #444; margin-bottom: 4px; }
+      .receipt-card .rc-head { text-align: center; font-weight: 800; font-size: 26pt; margin-bottom: 2px; }
+      .receipt-card .rc-sub  { text-align: center; font-size: 18pt; color: #444; margin-bottom: 4px; }
       .receipt-card .rc-line { border-bottom: 1px solid #ccc; margin: 5px 0; }
       .receipt-card .rc-row  { display: flex; justify-content: space-between; gap: 4px; }
       .receipt-card .rc-row b { font-weight: 700; text-align: right; }
-      .receipt-card .rc-total { text-align: right; font-size: 22pt; font-weight: 800; margin-top: 5px; }
-      .receipt-card .rc-status { text-align: center; font-size: 15pt; font-weight: 700; margin-top: 3px; padding: 2px 0; }
+      .receipt-card .rc-total { text-align: right; font-size: 30pt; font-weight: 800; margin-top: 5px; }
+      .receipt-card .rc-status { text-align: center; font-size: 19pt; font-weight: 700; margin-top: 3px; padding: 2px 0; }
       .receipt-card .rc-status.paid   { color: #065f46; }
       .receipt-card .rc-status.unpaid { color: #92400e; }
       .receipt-card .rc-status.pend   { color: #9a3412; }
-      .receipt-card .rc-foot { text-align: center; font-size: 12pt; color: #888; margin-top: 5px; }
+      .receipt-card .rc-foot { text-align: center; font-size: 15pt; color: #888; margin-top: 5px; }
       .receipt-card .rc-qr { text-align: center; margin: 4px 0 2px; }
       .receipt-card .rc-qr img { width: 100%; max-width: 250px; height: auto; display: block; margin: 0 auto; }
       @page { size: A4; margin: 1cm; }
@@ -2579,15 +2579,15 @@ function printReceipt(r) {
 
   var qrImg = new Image();
   qrImg.onload = function() {
-    var W = 600, PAD = 28, ROW_H = 44;
+    var W = 600, PAD = 28, ROW_H = 54;
     var qrW = 310;  // larger QR code
     var qrH = (qrImg.naturalHeight / qrImg.naturalWidth) * qrW;
     var FONT = "700 17px 'Sarabun', 'Noto Sans Thai', sans-serif";
 
     // Calculate canvas height
-    var H = PAD + 32 + 22 + 14 + (ROW_H * 4) + 14 + (ROW_H * 3) + 14;
+    var H = PAD + 44 + 36 + 20 + (ROW_H * 4) + 14 + (ROW_H * 3) + 14;
     if (prevUnpaidAmt > 0) { H += ROW_H * 2 + 14; }
-    H += 22 + 54 + 14 + 36 + 16 + 24 + 22 + 20 + 8 + qrH + PAD;
+    H += 36 + 74 + 14 + 36 + 16 + 26 + 24 + 22 + 8 + qrH + PAD;
 
     var canvas = document.createElement('canvas');
     canvas.width  = W;
@@ -2603,10 +2603,10 @@ function printReceipt(r) {
     }
     function row(label, val, y, bold) {
       ctx.save();
-      ctx.font = '26px ' + "'Sarabun','Noto Sans Thai',sans-serif";
+      ctx.font = '34px ' + "'Sarabun','Noto Sans Thai',sans-serif";
       ctx.fillStyle = '#374151'; ctx.textAlign = 'left';
       ctx.fillText(label, PAD, y);
-      ctx.font = (bold ? '700 ' : '') + "26px 'Sarabun','Noto Sans Thai',sans-serif";
+      ctx.font = (bold ? '700 ' : '') + "34px 'Sarabun','Noto Sans Thai',sans-serif";
       ctx.fillStyle = '#111827'; ctx.textAlign = 'right';
       ctx.fillText(val, W - PAD, y);
       ctx.restore();
@@ -2616,31 +2616,31 @@ function printReceipt(r) {
 
     // Title
     ctx.save();
-    ctx.font = "800 36px 'Sarabun','Noto Sans Thai',sans-serif";
+    ctx.font = "800 46px 'Sarabun','Noto Sans Thai',sans-serif";
     ctx.fillStyle = '#111827'; ctx.textAlign = 'center';
-    ctx.fillText('ใบแจ้งค่าน้ำประปา', W/2, y + 24);
+    ctx.fillText('ใบแจ้งค่าน้ำประปา', W/2, y + 38);
     ctx.restore();
-    y += 30;
+    y += 44;
 
     ctx.save();
-    ctx.font = "24px 'Sarabun','Noto Sans Thai',sans-serif";
+    ctx.font = "32px 'Sarabun','Noto Sans Thai',sans-serif";
     ctx.fillStyle = '#6b7280'; ctx.textAlign = 'center';
-    ctx.fillText('หมู่ 16 บ้านฐานพัฒนา', W/2, y + 17);
+    ctx.fillText('หมู่ 16 บ้านฐานพัฒนา', W/2, y + 26);
     ctx.restore();
-    y += 22;
+    y += 34;
 
     y += 8; line(y); y += 12;
 
-    row('บ้านเลขที่', String(r.houseNo), y + 22, true); y += ROW_H;
-    row('ชื่อเจ้าบ้าน', r.name||'—', y + 22, true); y += ROW_H;
-    row('เดือน', String(r.month), y + 22, true); y += ROW_H;
-    row('ปี', String(r.year), y + 22, false); y += ROW_H;
+    row('บ้านเลขที่', String(r.houseNo), y + 36, true); y += ROW_H;
+    row('ชื่อเจ้าบ้าน', r.name||'—', y + 36, true); y += ROW_H;
+    row('เดือน', String(r.month), y + 36, true); y += ROW_H;
+    row('ปี', String(r.year), y + 36, false); y += ROW_H;
 
     line(y); y += 12;
 
-    row('เลขเดิม', before, y + 22, false); y += ROW_H;
-    row('เลขใหม่', after, y + 22, false); y += ROW_H;
-    row('ใช้ไป', units, y + 22, false); y += ROW_H;
+    row('เลขเดิม', before, y + 36, false); y += ROW_H;
+    row('เลขใหม่', after, y + 36, false); y += ROW_H;
+    row('ใช้ไป', units, y + 36, false); y += ROW_H;
 
     line(y); y += 12;
 
@@ -2648,32 +2648,32 @@ function printReceipt(r) {
       ctx.save(); ctx.fillStyle = '#fff7ed';
       ctx.fillRect(PAD, y, W - PAD*2, ROW_H); ctx.restore();
       ctx.save();
-      ctx.font = "26px 'Sarabun','Noto Sans Thai',sans-serif";
+      ctx.font = "34px 'Sarabun','Noto Sans Thai',sans-serif";
       ctx.fillStyle = '#92400e'; ctx.textAlign = 'left';
-      ctx.fillText('⚠ ค้างจ่ายเดือนก่อน', PAD+4, y+22);
-      ctx.font = "700 30px 'Sarabun','Noto Sans Thai',sans-serif";
+      ctx.fillText('⚠ ค้างจ่ายเดือนก่อน', PAD+4, y+36);
+      ctx.font = "700 38px 'Sarabun','Noto Sans Thai',sans-serif";
       ctx.fillStyle = '#e3a008'; ctx.textAlign = 'right';
-      ctx.fillText(prevUnpaidAmt.toLocaleString() + ' ฿', W-PAD-4, y+22);
+      ctx.fillText(prevUnpaidAmt.toLocaleString() + ' ฿', W-PAD-4, y+36);
       ctx.restore(); y += ROW_H;
-      row('ค่าน้ำเดือนนี้', price + ' ฿', y+22, false); y += ROW_H;
+      row('ค่าน้ำเดือนนี้', price + ' ฿', y+36, false); y += ROW_H;
       line(y); y += 12;
       ctx.save();
-      ctx.font = "24px 'Sarabun','Noto Sans Thai',sans-serif";
+      ctx.font = "32px 'Sarabun','Noto Sans Thai',sans-serif";
       ctx.fillStyle='#6b7280'; ctx.textAlign='center';
-      ctx.fillText('ยอดรวมทั้งหมด', W/2, y+18); ctx.restore(); y+=24;
+      ctx.fillText('ยอดรวมทั้งหมด', W/2, y+26); ctx.restore(); y+=36;
       ctx.save();
-      ctx.font = "800 44px 'Sarabun','Noto Sans Thai',sans-serif";
+      ctx.font = "800 58px 'Sarabun','Noto Sans Thai',sans-serif";
       ctx.fillStyle='#111827'; ctx.textAlign='center';
-      ctx.fillText(totalAmt.toLocaleString()+' บาท', W/2, y+46); ctx.restore(); y+=54;
+      ctx.fillText(totalAmt.toLocaleString()+' บาท', W/2, y+62); ctx.restore(); y+=72;
     } else {
       ctx.save();
-      ctx.font = "24px 'Sarabun','Noto Sans Thai',sans-serif";
+      ctx.font = "32px 'Sarabun','Noto Sans Thai',sans-serif";
       ctx.fillStyle='#6b7280'; ctx.textAlign='center';
-      ctx.fillText('ยอดที่ต้องชำระ', W/2, y+18); ctx.restore(); y+=24;
+      ctx.fillText('ยอดที่ต้องชำระ', W/2, y+26); ctx.restore(); y+=36;
       ctx.save();
-      ctx.font = "800 46px 'Sarabun','Noto Sans Thai',sans-serif";
+      ctx.font = "800 62px 'Sarabun','Noto Sans Thai',sans-serif";
       ctx.fillStyle='#111827'; ctx.textAlign='center';
-      ctx.fillText(price+' บาท', W/2, y+50); ctx.restore(); y+=54;
+      ctx.fillText(price+' บาท', W/2, y+66); ctx.restore(); y+=76;
     }
 
     line(y); y += 10;
