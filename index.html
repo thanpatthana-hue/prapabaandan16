@@ -526,24 +526,24 @@
       body.printing-bulk #bulkPrintArea * { visibility: visible !important; }
       body.printing-bulk #bulkPrintArea {
         display: block !important; position: absolute; left: 0; top: 0; width: 100%;
-        font-family: 'Sarabun','TH SarabunPSK',sans-serif; font-size: 11pt; color: black;
+        font-family: 'Sarabun','TH SarabunPSK',sans-serif; font-size: 14pt; color: black;
       }
       .receipt-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0; }
       .receipt-card {
         border: 1px dashed #999; padding: 10px 12px; page-break-inside: avoid;
-        font-size: 16pt; line-height: 1.75; break-inside: avoid;
+        font-size: 19pt; line-height: 1.8; break-inside: avoid;
       }
-      .receipt-card .rc-head { text-align: center; font-weight: 800; font-size: 20pt; margin-bottom: 2px; }
-      .receipt-card .rc-sub  { text-align: center; font-size: 14pt; color: #444; margin-bottom: 4px; }
+      .receipt-card .rc-head { text-align: center; font-weight: 800; font-size: 24pt; margin-bottom: 2px; }
+      .receipt-card .rc-sub  { text-align: center; font-size: 17pt; color: #444; margin-bottom: 4px; }
       .receipt-card .rc-line { border-bottom: 1px solid #ccc; margin: 5px 0; }
       .receipt-card .rc-row  { display: flex; justify-content: space-between; gap: 4px; }
       .receipt-card .rc-row b { font-weight: 700; text-align: right; }
-      .receipt-card .rc-total { text-align: right; font-size: 22pt; font-weight: 800; margin-top: 5px; }
-      .receipt-card .rc-status { text-align: center; font-size: 15pt; font-weight: 700; margin-top: 3px; padding: 2px 0; }
+      .receipt-card .rc-total { text-align: right; font-size: 27pt; font-weight: 800; margin-top: 5px; }
+      .receipt-card .rc-status { text-align: center; font-size: 19pt; font-weight: 700; margin-top: 3px; padding: 2px 0; }
       .receipt-card .rc-status.paid   { color: #065f46; }
       .receipt-card .rc-status.unpaid { color: #92400e; }
       .receipt-card .rc-status.pend   { color: #9a3412; }
-      .receipt-card .rc-foot { text-align: center; font-size: 12pt; color: #888; margin-top: 5px; }
+      .receipt-card .rc-foot { text-align: center; font-size: 15pt; color: #888; margin-top: 5px; }
       .receipt-card .rc-qr { text-align: center; margin: 4px 0 2px; }
       .receipt-card .rc-qr img { width: 100%; max-width: 250px; height: auto; display: block; margin: 0 auto; }
       @page { size: A4; margin: 1cm; }
@@ -2579,7 +2579,7 @@ function printReceipt(r) {
 
   var qrImg = new Image();
   qrImg.onload = function() {
-    var W = 600, PAD = 28, ROW_H = 44;
+    var W = 600, PAD = 28, ROW_H = 52;
     var qrW = 310;  // larger QR code
     var qrH = (qrImg.naturalHeight / qrImg.naturalWidth) * qrW;
     var FONT = "700 17px 'Sarabun', 'Noto Sans Thai', sans-serif";
@@ -2603,10 +2603,10 @@ function printReceipt(r) {
     }
     function row(label, val, y, bold) {
       ctx.save();
-      ctx.font = '26px ' + "'Sarabun','Noto Sans Thai',sans-serif";
+      ctx.font = '30px ' + "'Sarabun','Noto Sans Thai',sans-serif";
       ctx.fillStyle = '#374151'; ctx.textAlign = 'left';
       ctx.fillText(label, PAD, y);
-      ctx.font = (bold ? '700 ' : '') + "26px 'Sarabun','Noto Sans Thai',sans-serif";
+      ctx.font = (bold ? '700 ' : '') + "30px 'Sarabun','Noto Sans Thai',sans-serif";
       ctx.fillStyle = '#111827'; ctx.textAlign = 'right';
       ctx.fillText(val, W - PAD, y);
       ctx.restore();
@@ -2616,14 +2616,14 @@ function printReceipt(r) {
 
     // Title
     ctx.save();
-    ctx.font = "800 36px 'Sarabun','Noto Sans Thai',sans-serif";
+    ctx.font = "800 42px 'Sarabun','Noto Sans Thai',sans-serif";
     ctx.fillStyle = '#111827'; ctx.textAlign = 'center';
     ctx.fillText('ใบแจ้งค่าน้ำประปา', W/2, y + 24);
     ctx.restore();
     y += 30;
 
     ctx.save();
-    ctx.font = "24px 'Sarabun','Noto Sans Thai',sans-serif";
+    ctx.font = "28px 'Sarabun','Noto Sans Thai',sans-serif";
     ctx.fillStyle = '#6b7280'; ctx.textAlign = 'center';
     ctx.fillText('หมู่ 16 บ้านฐานพัฒนา', W/2, y + 17);
     ctx.restore();
@@ -2648,30 +2648,30 @@ function printReceipt(r) {
       ctx.save(); ctx.fillStyle = '#fff7ed';
       ctx.fillRect(PAD, y, W - PAD*2, ROW_H); ctx.restore();
       ctx.save();
-      ctx.font = "26px 'Sarabun','Noto Sans Thai',sans-serif";
+      ctx.font = "30px 'Sarabun','Noto Sans Thai',sans-serif";
       ctx.fillStyle = '#92400e'; ctx.textAlign = 'left';
       ctx.fillText('⚠ ค้างจ่ายเดือนก่อน', PAD+4, y+22);
-      ctx.font = "700 30px 'Sarabun','Noto Sans Thai',sans-serif";
+      ctx.font = "700 36px 'Sarabun','Noto Sans Thai',sans-serif";
       ctx.fillStyle = '#e3a008'; ctx.textAlign = 'right';
       ctx.fillText(prevUnpaidAmt.toLocaleString() + ' ฿', W-PAD-4, y+22);
       ctx.restore(); y += ROW_H;
       row('ค่าน้ำเดือนนี้', price + ' ฿', y+22, false); y += ROW_H;
       line(y); y += 12;
       ctx.save();
-      ctx.font = "24px 'Sarabun','Noto Sans Thai',sans-serif";
+      ctx.font = "28px 'Sarabun','Noto Sans Thai',sans-serif";
       ctx.fillStyle='#6b7280'; ctx.textAlign='center';
       ctx.fillText('ยอดรวมทั้งหมด', W/2, y+18); ctx.restore(); y+=24;
       ctx.save();
-      ctx.font = "800 44px 'Sarabun','Noto Sans Thai',sans-serif";
+      ctx.font = "800 52px 'Sarabun','Noto Sans Thai',sans-serif";
       ctx.fillStyle='#111827'; ctx.textAlign='center';
       ctx.fillText(totalAmt.toLocaleString()+' บาท', W/2, y+46); ctx.restore(); y+=54;
     } else {
       ctx.save();
-      ctx.font = "24px 'Sarabun','Noto Sans Thai',sans-serif";
+      ctx.font = "28px 'Sarabun','Noto Sans Thai',sans-serif";
       ctx.fillStyle='#6b7280'; ctx.textAlign='center';
       ctx.fillText('ยอดที่ต้องชำระ', W/2, y+18); ctx.restore(); y+=24;
       ctx.save();
-      ctx.font = "800 46px 'Sarabun','Noto Sans Thai',sans-serif";
+      ctx.font = "800 54px 'Sarabun','Noto Sans Thai',sans-serif";
       ctx.fillStyle='#111827'; ctx.textAlign='center';
       ctx.fillText(price+' บาท', W/2, y+50); ctx.restore(); y+=54;
     }
@@ -2679,7 +2679,7 @@ function printReceipt(r) {
     line(y); y += 10;
 
     ctx.save();
-    ctx.font = "700 30px 'Sarabun','Noto Sans Thai',sans-serif";
+    ctx.font = "700 36px 'Sarabun','Noto Sans Thai',sans-serif";
     ctx.fillStyle = stColor; ctx.textAlign = 'center';
     ctx.fillText(stLabel, W/2, y+22); ctx.restore(); y += 32;
 
@@ -2689,13 +2689,13 @@ function printReceipt(r) {
     ctx.setLineDash([]); ctx.restore(); y += 14;
 
     ctx.save();
-    ctx.font = "22px 'Sarabun','Noto Sans Thai',sans-serif";
+    ctx.font = "30px 'Sarabun','Noto Sans Thai',sans-serif";
     ctx.fillStyle='#9ca3af'; ctx.textAlign='center';
     ctx.fillText('ขอบคุณที่ชำระค่าบริการ', W/2, y+15); y+=22;
     ctx.fillText(today, W/2, y+15); ctx.restore(); y+=22;
 
     ctx.save();
-    ctx.font = "21px 'Sarabun','Noto Sans Thai',sans-serif";
+    ctx.font = "25px 'Sarabun','Noto Sans Thai',sans-serif";
     ctx.fillStyle='#6b7280'; ctx.textAlign='center';
     ctx.fillText('หน่วยล่ะ 7 บาท  |  ไม่ใช้น้ำค่ามิเตอร์ 0-2 หน่วย  20 บาท', W/2, y+14);
     ctx.restore(); y += 20;
