@@ -2719,26 +2719,26 @@ function printReceipt(r) {
       ctx.fillStyle='#6b7280'; ctx.textAlign='center';
       ctx.fillText('ยอดรวมทั้งหมด', W/2, y+16); ctx.restore(); y+=22;
       ctx.save();
-      ctx.font = "800 46px 'Sarabun','Noto Sans Thai',sans-serif";
+      ctx.font = "800 38px 'Sarabun','Noto Sans Thai',sans-serif";
       ctx.fillStyle='#111827'; ctx.textAlign='center';
-      ctx.fillText(totalAmt.toLocaleString()+' บาท', W/2, y+40); ctx.restore(); y+=48;
+      ctx.fillText(totalAmt.toLocaleString()+' บาท', W/2, y+36); ctx.restore(); y+=42;
     } else {
       ctx.save();
       ctx.font = "26px 'Sarabun','Noto Sans Thai',sans-serif";
       ctx.fillStyle='#6b7280'; ctx.textAlign='center';
       ctx.fillText('ยอดที่ต้องชำระ', W/2, y+16); ctx.restore(); y+=22;
       ctx.save();
-      ctx.font = "800 46px 'Sarabun','Noto Sans Thai',sans-serif";
+      ctx.font = "800 38px 'Sarabun','Noto Sans Thai',sans-serif";
       ctx.fillStyle='#111827'; ctx.textAlign='center';
-      ctx.fillText(price+' บาท', W/2, y+42); ctx.restore(); y+=48;
+      ctx.fillText(price+' บาท', W/2, y+36); ctx.restore(); y+=42;
     }
 
     line(y); y += 10;
 
     ctx.save();
-    ctx.font = "700 36px 'Sarabun','Noto Sans Thai',sans-serif";
+    ctx.font = "700 26px 'Sarabun','Noto Sans Thai',sans-serif";
     ctx.fillStyle = stColor; ctx.textAlign = 'center';
-    ctx.fillText(stLabel, W/2, y+22); ctx.restore(); y += 32;
+    ctx.fillText(stLabel, W/2, y+18); ctx.restore(); y += 26;
 
     // Dashed separator
     ctx.save(); ctx.strokeStyle='#d1d5db'; ctx.lineWidth=1; ctx.setLineDash([4,4]);
