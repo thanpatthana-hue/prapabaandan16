@@ -2086,21 +2086,24 @@ async function loadMeterData() {
   try {
     var res = await api('getMeterData', { houseNo: h, year: y, month: m });
 
-    // ── อ่านก่อน: เลขอ่านหลังล่าสุดของบ้านนี้ (ก่อนเดือนที่เลือก) ──
-    var curMonthIdx = MONTHS.indexOf(String(m));
-    var curYearNum  = Number(y);
-    var bestRec = null;
-    allRecords.forEach(function(rec) {
-      if (String(rec.houseNo) !== String(h)) return;
-      if (rec.after === '' || rec.after === null || rec.after === undefined) return;
-      var rY = Number(rec.year), rM = MONTHS.indexOf(String(rec.month));
-      if (rY > curYearNum || (rY === curYearNum && rM >= curMonthIdx)) return;
-      if (!bestRec) { bestRec = rec; return; }
-      var bY = Number(bestRec.year), bM = MONTHS.indexOf(String(bestRec.month));
-      if (rY > bY || (rY === bY && rM > bM)) bestRec = rec;
-    });
-    var before = bestRec ? String(bestRec.after)
-               : ((res.before !== '' && res.before != null) ? String(res.before) : '');
+    // ── อ่านก่อน: ใช้ค่าจากเซิร์ฟเวอร์ก่อน (เชื่อถือได้) ──
+    // ถ้าเซิร์ฟเวอร์ไม่มีรายการเดือนนี้ ให้ fallback ดึงเลขอ่านหลังล่าสุดจาก allRecords
+    var before = (res.before !== '' && res.before != null) ? String(res.before) : '';
+    if (!before) {
+      var curMonthIdx = MONTHS.indexOf(String(m));
+      var curYearNum  = Number(y);
+      var bestRec = null;
+      allRecords.forEach(function(rec) {
+        if (String(rec.houseNo) !== String(h)) return;
+        if (rec.after === '' || rec.after === null || rec.after === undefined) return;
+        var rY = Number(rec.year), rM = MONTHS.indexOf(String(rec.month));
+        if (rY > curYearNum || (rY === curYearNum && rM >= curMonthIdx)) return;
+        if (!bestRec) { bestRec = rec; return; }
+        var bY = Number(bestRec.year), bM = MONTHS.indexOf(String(bestRec.month));
+        if (rY > bY || (rY === bY && rM > bM)) bestRec = rec;
+      });
+      if (bestRec) before = String(bestRec.after);
+    }
 
     document.getElementById('meterBefore').value = before;
 
