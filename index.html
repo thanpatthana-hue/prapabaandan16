@@ -2084,46 +2084,38 @@ async function loadMeterData() {
   var y = document.getElementById('year').value;
   var m = document.getElementById('month').value;
   try {
-    var res    = await api('getMeterData', { houseNo: h, year: y, month: m });
-    var before = (res.before !== '' && res.before != null) ? String(res.before) : '';
-    var after  = (res.after  !== '' && res.after  != null) ? String(res.after)  : '';
+    var res = await api('getMeterData', { houseNo: h, year: y, month: m });
 
-    // ── fallback client-side: ถ้า before ว่าง ให้ดึง after ล่าสุดของบ้านนี้มาใส่ (ทั้งจ่ายแล้วและค้างจ่าย) ──
-    if (before === '') {
-      var curMonthIdx = MONTHS.indexOf(String(m));
-      var curYearNum  = Number(y);
-      var bestRec = null;
-      allRecords.forEach(function(rec) {
-        if (String(rec.houseNo) !== String(h)) return;
-        if (rec.after === '' || rec.after === null || rec.after === undefined) return;
-        var rY = Number(rec.year), rM = MONTHS.indexOf(String(rec.month));
-        var isBefore = rY < curYearNum || (rY === curYearNum && rM < curMonthIdx);
-        if (!isBefore) return;
-        if (!bestRec) { bestRec = rec; return; }
-        var bY = Number(bestRec.year), bM = MONTHS.indexOf(String(bestRec.month));
-        if (rY > bY || (rY === bY && rM > bM)) bestRec = rec;
-      });
-      if (bestRec) before = String(bestRec.after);
-    }
+    // ── อ่านก่อน: เลขอ่านหลังล่าสุดของบ้านนี้ (ก่อนเดือนที่เลือก) ──
+    var curMonthIdx = MONTHS.indexOf(String(m));
+    var curYearNum  = Number(y);
+    var bestRec = null;
+    allRecords.forEach(function(rec) {
+      if (String(rec.houseNo) !== String(h)) return;
+      if (rec.after === '' || rec.after === null || rec.after === undefined) return;
+      var rY = Number(rec.year), rM = MONTHS.indexOf(String(rec.month));
+      if (rY > curYearNum || (rY === curYearNum && rM >= curMonthIdx)) return;
+      if (!bestRec) { bestRec = rec; return; }
+      var bY = Number(bestRec.year), bM = MONTHS.indexOf(String(bestRec.month));
+      if (rY > bY || (rY === bY && rM > bM)) bestRec = rec;
+    });
+    var before = bestRec ? String(bestRec.after)
+               : ((res.before !== '' && res.before != null) ? String(res.before) : '');
 
     document.getElementById('meterBefore').value = before;
+
+    // ── อ่านหลัง: ว่างเสมอ เพื่อคีย์เลขเดือนปัจจุบัน ──
     var ae = document.getElementById('meterAfter');
     var lb = document.getElementById('labelAfter');
-    if (res.found && res.status === 'Unpaid' && after === '') {
-      ae.value = ''; ae.className = 'form-input pending-af'; ae.placeholder = 'กรอกตอนเก็บเงิน ★';
-      lb.textContent = 'อ่านหลัง ★ (รอกรอก)'; lb.className = 'lbl accent-orange';
-      setStatusHint('unpaid-noafter','<i class="fa-solid fa-circle-exclamation"></i> บันทึกเลขก่อนแล้ว — รอกรอกเลขหลัง');
-    } else if (res.found && res.status === 'Unpaid' && after !== '') {
-      ae.value = ''; ae.className = 'form-input pending-af'; ae.placeholder = 'กรอกตอนเก็บเงิน ★';
-      lb.textContent = 'อ่านหลัง ★ (รอกรอก)'; lb.className = 'lbl accent-orange';
-      setStatusHint('unpaid-noafter','<i class="fa-solid fa-circle-exclamation"></i> ค้างจ่าย — กรอกเลขหลังเพื่อบันทึกใหม่');
-    } else if (res.found && res.status === 'Paid') {
-      ae.value = after; ae.className = 'form-input'; ae.placeholder = 'ระบุเลข';
-      lb.textContent = 'อ่านหลัง (จ่ายแล้ว)'; lb.className = 'lbl accent-green';
-      setStatusHint('paid','<i class="fa-solid fa-circle-check"></i> จ่ายแล้ว — ใช้ปุ่มแก้ไขหากต้องการเปลี่ยนแปลง');
+    ae.value = ''; ae.className = 'form-input new-entry'; ae.placeholder = 'กรอกเลขอ่านหลัง';
+    lb.textContent = 'อ่านหลัง'; lb.className = 'lbl accent-blue';
+
+    // ── แสดงสถานะของเดือนนี้ (hint เท่านั้น) ──
+    if (res.found && res.status === 'Paid') {
+      setStatusHint('paid','<i class="fa-solid fa-circle-check"></i> เดือนนี้จ่ายแล้ว');
+    } else if (res.found && res.status === 'Unpaid') {
+      setStatusHint('unpaid','<i class="fa-solid fa-clock"></i> ค้างจ่ายอยู่');
     } else {
-      ae.value = ''; ae.className = 'form-input new-entry'; ae.placeholder = 'กรอกตอนเก็บเงิน';
-      lb.textContent = 'อ่านหลัง (ถ้ามี)'; lb.className = 'lbl accent-blue';
       setStatusHint('new','<i class="fa-solid fa-plus-circle"></i> รายการใหม่เดือนนี้');
     }
     calculate();
