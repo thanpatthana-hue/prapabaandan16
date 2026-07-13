@@ -2114,9 +2114,9 @@ async function loadMeterData() {
       lb.textContent = 'อ่านหลัง ★ (รอกรอก)'; lb.className = 'lbl accent-orange';
       setStatusHint('unpaid-noafter','<i class="fa-solid fa-circle-exclamation"></i> บันทึกเลขก่อนแล้ว — รอกรอกเลขหลัง');
     } else if (res.found && res.status === 'Unpaid' && after !== '') {
-      ae.value = after; ae.className = 'form-input unpaid-hl'; ae.placeholder = 'ระบุเลข';
-      lb.textContent = 'อ่านหลัง (แก้ไขได้)'; lb.className = 'lbl accent-yellow';
-      setStatusHint('unpaid','<i class="fa-solid fa-clock"></i> ค้างจ่ายอยู่');
+      ae.value = ''; ae.className = 'form-input pending-af'; ae.placeholder = 'กรอกตอนเก็บเงิน ★';
+      lb.textContent = 'อ่านหลัง ★ (รอกรอก)'; lb.className = 'lbl accent-orange';
+      setStatusHint('unpaid-noafter','<i class="fa-solid fa-circle-exclamation"></i> ค้างจ่าย — กรอกเลขหลังเพื่อบันทึกใหม่');
     } else if (res.found && res.status === 'Paid') {
       ae.value = after; ae.className = 'form-input'; ae.placeholder = 'ระบุเลข';
       lb.textContent = 'อ่านหลัง (จ่ายแล้ว)'; lb.className = 'lbl accent-green';
