@@ -2107,18 +2107,29 @@ async function loadMeterData() {
 
     document.getElementById('meterBefore').value = before;
 
-    // ── อ่านหลัง: ว่างเสมอ เพื่อคีย์เลขเดือนปัจจุบัน ──
     var ae = document.getElementById('meterAfter');
     var lb = document.getElementById('labelAfter');
-    ae.value = ''; ae.className = 'form-input new-entry'; ae.placeholder = 'กรอกเลขอ่านหลัง';
-    lb.textContent = 'อ่านหลัง'; lb.className = 'lbl accent-blue';
+    var after = (res.after !== '' && res.after != null) ? String(res.after) : '';
 
-    // ── แสดงสถานะของเดือนนี้ (hint เท่านั้น) ──
     if (res.found && res.status === 'Paid') {
-      setStatusHint('paid','<i class="fa-solid fa-circle-check"></i> เดือนนี้จ่ายแล้ว');
-    } else if (res.found && res.status === 'Unpaid') {
+      // จ่ายแล้ว — แสดงทั้ง 2 ช่อง
+      ae.value = after; ae.className = 'form-input'; ae.placeholder = 'ระบุเลข';
+      lb.textContent = 'อ่านหลัง (จ่ายแล้ว)'; lb.className = 'lbl accent-green';
+      setStatusHint('paid','<i class="fa-solid fa-circle-check"></i> จ่ายแล้ว — ใช้ปุ่มแก้ไขหากต้องการเปลี่ยนแปลง');
+    } else if (res.found && res.status === 'Unpaid' && after !== '') {
+      // ค้างจ่าย มีเลขหลังแล้ว — แสดงทั้ง 2 ช่อง
+      ae.value = after; ae.className = 'form-input unpaid-hl'; ae.placeholder = 'ระบุเลข';
+      lb.textContent = 'อ่านหลัง (แก้ไขได้)'; lb.className = 'lbl accent-yellow';
       setStatusHint('unpaid','<i class="fa-solid fa-clock"></i> ค้างจ่ายอยู่');
+    } else if (res.found && res.status === 'Unpaid' && after === '') {
+      // ค้างจ่าย ยังไม่มีเลขหลัง — รอกรอก
+      ae.value = ''; ae.className = 'form-input pending-af'; ae.placeholder = 'กรอกตอนเก็บเงิน ★';
+      lb.textContent = 'อ่านหลัง ★ (รอกรอก)'; lb.className = 'lbl accent-orange';
+      setStatusHint('unpaid-noafter','<i class="fa-solid fa-circle-exclamation"></i> บันทึกเลขก่อนแล้ว — รอกรอกเลขหลัง');
     } else {
+      // เดือนใหม่ ยังไม่มีรายการ — อ่านหลังว่างพร้อมคีย์
+      ae.value = ''; ae.className = 'form-input new-entry'; ae.placeholder = 'กรอกเลขอ่านหลัง';
+      lb.textContent = 'อ่านหลัง'; lb.className = 'lbl accent-blue';
       setStatusHint('new','<i class="fa-solid fa-plus-circle"></i> รายการใหม่เดือนนี้');
     }
     calculate();
