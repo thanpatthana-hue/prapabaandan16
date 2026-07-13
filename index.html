@@ -1349,6 +1349,29 @@ function getPreviousUnpaidAmount(houseNo, currentYear, currentMonth) {
   return total;
 }
 
+// ── คืนรายละเอียดแต่ละเดือนที่ค้างจ่าย [{month, year, unit, amount}] ──
+function getPreviousUnpaidDetails(houseNo, currentYear, currentMonth) {
+  var currentMonthIdx = MONTHS.indexOf(String(currentMonth));
+  var curYear = Number(currentYear);
+  var result = [];
+  allRecords.forEach(function(r) {
+    if (String(r.houseNo) !== String(houseNo)) return;
+    if (String(r.status) === 'Paid') return;
+    var isPend = (r.after === '' || r.after === null || r.after === undefined);
+    if (isPend) return;
+    var rYear = Number(r.year);
+    var rMonthIdx = MONTHS.indexOf(String(r.month));
+    if (rYear < curYear || (rYear === curYear && rMonthIdx < currentMonthIdx)) {
+      result.push({ month: String(r.month), year: String(r.year), unit: Number(r.unit)||0, amount: calcWaterPrice(r.unit) });
+    }
+  });
+  result.sort(function(a,b){
+    if (Number(a.year) !== Number(b.year)) return Number(a.year) - Number(b.year);
+    return MONTHS.indexOf(a.month) - MONTHS.indexOf(b.month);
+  });
+  return result;
+}
+
 function getPreviousUnpaidRecords(houseNo, currentYear, currentMonth) {
   var currentMonthIdx = MONTHS.indexOf(String(currentMonth));
   var curYear = Number(currentYear);
@@ -1940,6 +1963,11 @@ window.onload = async function() {
     return;
   }
   hideLoading();
+
+  // ── รีเฟรชข้อมูลเบื้องหลังทุก 2 นาที ──
+  setInterval(function() {
+    loadAllData();
+  }, 120000);
 };
 
 function initYearSelect() {
@@ -2059,6 +2087,25 @@ async function loadMeterData() {
     var res    = await api('getMeterData', { houseNo: h, year: y, month: m });
     var before = (res.before !== '' && res.before != null) ? String(res.before) : '';
     var after  = (res.after  !== '' && res.after  != null) ? String(res.after)  : '';
+
+    // ── fallback client-side: ถ้าเซิร์ฟเวอร์ไม่ส่ง before มาหรือรายการใหม่ ค้นจาก allRecords ──
+    if (!res.found && before === '') {
+      var curMonthIdx = MONTHS.indexOf(String(m));
+      var curYearNum  = Number(y);
+      var bestRec = null;
+      allRecords.forEach(function(rec) {
+        if (String(rec.houseNo) !== String(h)) return;
+        if (rec.after === '' || rec.after === null || rec.after === undefined) return;
+        var rY = Number(rec.year), rM = MONTHS.indexOf(String(rec.month));
+        var isBefore = rY < curYearNum || (rY === curYearNum && rM < curMonthIdx);
+        if (!isBefore) return;
+        if (!bestRec) { bestRec = rec; return; }
+        var bY = Number(bestRec.year), bM = MONTHS.indexOf(String(bestRec.month));
+        if (rY > bY || (rY === bY && rM > bM)) bestRec = rec;
+      });
+      if (bestRec) before = String(bestRec.after);
+    }
+
     document.getElementById('meterBefore').value = before;
     var ae = document.getElementById('meterAfter');
     var lb = document.getElementById('labelAfter');
@@ -2585,9 +2632,11 @@ function printReceipt(r) {
     var FONT = "700 17px 'Sarabun', 'Noto Sans Thai', sans-serif";
 
     // Calculate canvas height
+    var prevUnpaidDetailsTmp = getPreviousUnpaidDetails(r.houseNo, r.year, r.month);
     var H = PAD + 32 + 22 + 14 + (ROW_H * 4) + 14 + (ROW_H * 3) + 14;
-    if (prevUnpaidAmt > 0) { H += ROW_H * 2 + 14; }
-    H += 22 + 54 + 14 + 36 + 16 + 24 + 22 + 20 + 8 + qrH + PAD;
+    if (prevUnpaidAmt > 0) { H += 26 + (prevUnpaidDetailsTmp.length * 44) + 8 + 44 + 10 + 22 + 48; }
+    else { H += 22 + 48; }
+    H += 14 + 36 + 16 + 24 + 22 + 20 + 8 + qrH + PAD;
 
     var canvas = document.createElement('canvas');
     canvas.width  = W;
@@ -2644,36 +2693,44 @@ function printReceipt(r) {
 
     line(y); y += 12;
 
+    var prevUnpaidDetails = getPreviousUnpaidDetails(r.houseNo, r.year, r.month);
     if (prevUnpaidAmt > 0) {
-      ctx.save(); ctx.fillStyle = '#fff7ed';
-      ctx.fillRect(PAD, y, W - PAD*2, ROW_H); ctx.restore();
-      ctx.save();
-      ctx.font = "30px 'Sarabun','Noto Sans Thai',sans-serif";
+      // ── แสดงแต่ละเดือนที่ค้าง ──
+      ctx.save(); ctx.font = "600 26px 'Sarabun','Noto Sans Thai',sans-serif";
       ctx.fillStyle = '#92400e'; ctx.textAlign = 'left';
-      ctx.fillText('⚠ ค้างจ่ายเดือนก่อน', PAD+4, y+22);
-      ctx.font = "700 36px 'Sarabun','Noto Sans Thai',sans-serif";
-      ctx.fillStyle = '#e3a008'; ctx.textAlign = 'right';
-      ctx.fillText(prevUnpaidAmt.toLocaleString() + ' ฿', W-PAD-4, y+22);
-      ctx.restore(); y += ROW_H;
-      row('ค่าน้ำเดือนนี้', price + ' ฿', y+22, false); y += ROW_H;
-      line(y); y += 12;
+      ctx.fillText('⚠ รายละเอียดค้างจ่าย', PAD+4, y+20); ctx.restore(); y += 26;
+      prevUnpaidDetails.forEach(function(d) {
+        ctx.save(); ctx.fillStyle = '#fff7ed';
+        ctx.fillRect(PAD, y, W - PAD*2, 40); ctx.restore();
+        ctx.save();
+        ctx.font = "26px 'Sarabun','Noto Sans Thai',sans-serif";
+        ctx.fillStyle = '#374151'; ctx.textAlign = 'left';
+        ctx.fillText('  ' + d.month + ' ' + d.year + '  (' + d.unit + ' หน่วย)', PAD+4, y+26);
+        ctx.font = "700 28px 'Sarabun','Noto Sans Thai',sans-serif";
+        ctx.fillStyle = '#e3a008'; ctx.textAlign = 'right';
+        ctx.fillText(d.amount.toLocaleString() + ' ฿', W-PAD-4, y+26);
+        ctx.restore(); y += 44;
+      });
+      line(y); y += 8;
+      row('ค่าน้ำเดือนนี้', price + ' ฿', y+22, false); y += 44;
+      line(y); y += 10;
       ctx.save();
-      ctx.font = "28px 'Sarabun','Noto Sans Thai',sans-serif";
+      ctx.font = "26px 'Sarabun','Noto Sans Thai',sans-serif";
       ctx.fillStyle='#6b7280'; ctx.textAlign='center';
-      ctx.fillText('ยอดรวมทั้งหมด', W/2, y+18); ctx.restore(); y+=24;
+      ctx.fillText('ยอดรวมทั้งหมด', W/2, y+16); ctx.restore(); y+=22;
       ctx.save();
-      ctx.font = "800 52px 'Sarabun','Noto Sans Thai',sans-serif";
+      ctx.font = "800 46px 'Sarabun','Noto Sans Thai',sans-serif";
       ctx.fillStyle='#111827'; ctx.textAlign='center';
-      ctx.fillText(totalAmt.toLocaleString()+' บาท', W/2, y+46); ctx.restore(); y+=54;
+      ctx.fillText(totalAmt.toLocaleString()+' บาท', W/2, y+40); ctx.restore(); y+=48;
     } else {
       ctx.save();
-      ctx.font = "28px 'Sarabun','Noto Sans Thai',sans-serif";
+      ctx.font = "26px 'Sarabun','Noto Sans Thai',sans-serif";
       ctx.fillStyle='#6b7280'; ctx.textAlign='center';
-      ctx.fillText('ยอดที่ต้องชำระ', W/2, y+18); ctx.restore(); y+=24;
+      ctx.fillText('ยอดที่ต้องชำระ', W/2, y+16); ctx.restore(); y+=22;
       ctx.save();
-      ctx.font = "800 54px 'Sarabun','Noto Sans Thai',sans-serif";
+      ctx.font = "800 46px 'Sarabun','Noto Sans Thai',sans-serif";
       ctx.fillStyle='#111827'; ctx.textAlign='center';
-      ctx.fillText(price+' บาท', W/2, y+50); ctx.restore(); y+=54;
+      ctx.fillText(price+' บาท', W/2, y+42); ctx.restore(); y+=48;
     }
 
     line(y); y += 10;
@@ -2879,12 +2936,19 @@ function doBulkPrint() {
     var stLabel = isPaid ? '✓ ชำระเงินแล้ว' : (isPend ? '⏳ ยังไม่มีเลขอ่านหลัง' : '⚠ ยังไม่ชำระเงิน');
 
     var prevUnpaidAmt = getPreviousUnpaidAmount(r.houseNo, r.year, r.month);
+    var prevUnpaidDets = getPreviousUnpaidDetails(r.houseNo, r.year, r.month);
     var currentAmt = !isPend ? calcWaterPrice(r.unit) : 0;
     var totalAmt   = currentAmt + prevUnpaidAmt;
     var totalPrice = totalAmt.toLocaleString();
+    var debtRows = prevUnpaidDets.map(function(d) {
+      return '<div class="rc-row" style="background:#fff7ed;padding:1px 0;">'
+        + '<span style="color:#92400e;font-size:9.5pt;">'+d.month+' '+d.year+' ('+d.unit+' หน่วย)</span>'
+        + '<b style="color:#e3a008;">'+d.amount.toLocaleString()+' ฿</b></div>';
+    }).join('');
     var debtSection = prevUnpaidAmt > 0
       ? '<div class="rc-line"></div>'
-        + '<div class="rc-row" style="background:#fff7ed;padding:2px 0;"><span style="color:#92400e;">⚠ ค้างจ่ายเดือนก่อน</span><b style="color:#e3a008;">'+prevUnpaidAmt.toLocaleString()+' ฿</b></div>'
+        + '<div style="font-size:9.5pt;color:#92400e;font-weight:700;margin:2px 0;">⚠ รายละเอียดค้างจ่าย</div>'
+        + debtRows
         + '<div class="rc-row"><span>ค่าน้ำเดือนนี้</span><b>'+price+' ฿</b></div>'
         + '<div class="rc-line"></div>'
         + '<div class="rc-total" style="font-size:13pt;">ยอดรวมทั้งหมด: '+totalPrice+' บาท</div>'
