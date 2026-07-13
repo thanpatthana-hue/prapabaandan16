@@ -2088,8 +2088,8 @@ async function loadMeterData() {
     var before = (res.before !== '' && res.before != null) ? String(res.before) : '';
     var after  = (res.after  !== '' && res.after  != null) ? String(res.after)  : '';
 
-    // ── fallback client-side: ถ้าเซิร์ฟเวอร์ไม่ส่ง before มาหรือรายการใหม่ ค้นจาก allRecords ──
-    if (!res.found && before === '') {
+    // ── fallback client-side: ถ้า before ว่าง ให้ดึง after ล่าสุดของบ้านนี้มาใส่ (ทั้งจ่ายแล้วและค้างจ่าย) ──
+    if (before === '') {
       var curMonthIdx = MONTHS.indexOf(String(m));
       var curYearNum  = Number(y);
       var bestRec = null;
