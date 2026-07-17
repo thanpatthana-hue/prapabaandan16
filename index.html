@@ -1332,7 +1332,11 @@ var QR_DATA_URL = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAasAAAIUCAIAAAA
 // ══════════════════════════════════
 // UNPAID BALANCE HELPERS
 // ══════════════════════════════════
+var _paidDebtCache = {}; // { 'houseNo|year|month': { amount, details } }
+
 function getPreviousUnpaidAmount(houseNo, currentYear, currentMonth) {
+  var cacheKey = String(houseNo) + '|' + String(currentYear) + '|' + String(currentMonth);
+  if (_paidDebtCache[cacheKey]) return _paidDebtCache[cacheKey].amount;
   var currentMonthIdx = MONTHS.indexOf(String(currentMonth));
   var curYear = Number(currentYear);
   var total = 0;
@@ -1352,6 +1356,8 @@ function getPreviousUnpaidAmount(houseNo, currentYear, currentMonth) {
 
 // ── คืนรายละเอียดแต่ละเดือนที่ค้างจ่าย [{month, year, unit, amount}] ──
 function getPreviousUnpaidDetails(houseNo, currentYear, currentMonth) {
+  var cacheKey = String(houseNo) + '|' + String(currentYear) + '|' + String(currentMonth);
+  if (_paidDebtCache[cacheKey]) return _paidDebtCache[cacheKey].details;
   var currentMonthIdx = MONTHS.indexOf(String(currentMonth));
   var curYear = Number(currentYear);
   var result = [];
@@ -2203,6 +2209,13 @@ async function btnSave(status) {
     // ── อัปเดตสถานะค้างจ่ายเดือนก่อนให้เป็น "จ่ายแล้ว" อัตโนมัติ ──
     if (status === 'Paid') {
       var prevRecs = getPreviousUnpaidRecords(form.houseNo, form.year, form.month);
+      // บันทึก cache ก่อน auto-mark เพื่อให้ใบเสร็จแสดงยอดรวมถูกต้อง
+      var _cacheKey = String(form.houseNo) + '|' + String(form.year) + '|' + String(form.month);
+      _paidDebtCache[_cacheKey] = {
+        amount: prevRecs.reduce(function(s,r){ return s + calcWaterPrice(r.unit); }, 0),
+        details: prevRecs.map(function(r){ return { month: String(r.month), year: String(r.year), unit: Number(r.unit)||0, amount: calcWaterPrice(r.unit) }; })
+                         .sort(function(a,b){ return Number(a.year)!==Number(b.year) ? Number(a.year)-Number(b.year) : MONTHS.indexOf(a.month)-MONTHS.indexOf(b.month); })
+      };
       for (var pi = 0; pi < prevRecs.length; pi++) {
         var pr = prevRecs[pi];
         try {
@@ -2278,6 +2291,13 @@ async function changeStatus(r, newStatus, rowId) {
     // ── อัปเดตสถานะค้างจ่ายเดือนก่อนให้เป็น "จ่ายแล้ว" อัตโนมัติ ──
     if (newStatus === 'Paid') {
       var prevRecs = getPreviousUnpaidRecords(r.houseNo, r.year, r.month);
+      // บันทึก cache ก่อน auto-mark เพื่อให้ใบเสร็จแสดงยอดรวมถูกต้อง
+      var _cacheKey = String(r.houseNo) + '|' + String(r.year) + '|' + String(r.month);
+      _paidDebtCache[_cacheKey] = {
+        amount: prevRecs.reduce(function(s,pr){ return s + calcWaterPrice(pr.unit); }, 0),
+        details: prevRecs.map(function(pr){ return { month: String(pr.month), year: String(pr.year), unit: Number(pr.unit)||0, amount: calcWaterPrice(pr.unit) }; })
+                         .sort(function(a,b){ return Number(a.year)!==Number(b.year) ? Number(a.year)-Number(b.year) : MONTHS.indexOf(a.month)-MONTHS.indexOf(b.month); })
+      };
       for (var pi = 0; pi < prevRecs.length; pi++) {
         var pr = prevRecs[pi];
         try {
@@ -2574,6 +2594,13 @@ async function saveEditRecord(status) {
     // ── อัปเดตสถานะค้างจ่ายเดือนก่อนให้เป็น "จ่ายแล้ว" อัตโนมัติ ──
     if (status === 'Paid') {
       var prevRecs = getPreviousUnpaidRecords(r.houseNo, r.year, r.month);
+      // บันทึก cache ก่อน auto-mark เพื่อให้ใบเสร็จแสดงยอดรวมถูกต้อง
+      var _cacheKey = String(r.houseNo) + '|' + String(r.year) + '|' + String(r.month);
+      _paidDebtCache[_cacheKey] = {
+        amount: prevRecs.reduce(function(s,pr){ return s + calcWaterPrice(pr.unit); }, 0),
+        details: prevRecs.map(function(pr){ return { month: String(pr.month), year: String(pr.year), unit: Number(pr.unit)||0, amount: calcWaterPrice(pr.unit) }; })
+                         .sort(function(a,b){ return Number(a.year)!==Number(b.year) ? Number(a.year)-Number(b.year) : MONTHS.indexOf(a.month)-MONTHS.indexOf(b.month); })
+      };
       for (var pi = 0; pi < prevRecs.length; pi++) {
         var pr = prevRecs[pi];
         try {
@@ -2676,14 +2703,14 @@ function printReceipt(r) {
     ctx.fillStyle = '#111827'; ctx.textAlign = 'center';
     ctx.fillText('ใบแจ้งค่าน้ำประปา', W/2, y + 24);
     ctx.restore();
-    y += 30;
+    y += 44;
 
     ctx.save();
-    ctx.font = "38px 'Sarabun','Noto Sans Thai',sans-serif";
-    ctx.fillStyle = '#6b7280'; ctx.textAlign = 'center';
+    ctx.font = "600 38px 'Sarabun','Noto Sans Thai',sans-serif";
+    ctx.fillStyle = '#374151'; ctx.textAlign = 'center';
     ctx.fillText('หมู่ 16 บ้านฐานพัฒนา', W/2, y + 17);
     ctx.restore();
-    y += 22;
+    y += 40;
 
     y += 8; line(y); y += 12;
 
@@ -2753,16 +2780,18 @@ function printReceipt(r) {
     ctx.setLineDash([]); ctx.restore(); y += 14;
 
     ctx.save();
-    ctx.font = "42px 'Sarabun','Noto Sans Thai',sans-serif";
-    ctx.fillStyle='#9ca3af'; ctx.textAlign='center';
-    ctx.fillText('ขอบคุณที่ชำระค่าบริการ', W/2, y+15); y+=22;
-    ctx.fillText(today, W/2, y+15); ctx.restore(); y+=22;
+    ctx.font = "700 42px 'Sarabun','Noto Sans Thai',sans-serif";
+    ctx.fillStyle='#374151'; ctx.textAlign='center';
+    ctx.fillText('ขอบคุณที่ชำระค่าบริการ', W/2, y+20); y+=46;
+    ctx.font = "600 38px 'Sarabun','Noto Sans Thai',sans-serif";
+    ctx.fillStyle='#374151';
+    ctx.fillText(today, W/2, y+16); ctx.restore(); y+=44;
 
     ctx.save();
-    ctx.font = "35px 'Sarabun','Noto Sans Thai',sans-serif";
-    ctx.fillStyle='#6b7280'; ctx.textAlign='center';
-    ctx.fillText('หน่วยล่ะ 7 บาท  |  ไม่ใช้น้ำค่ามิเตอร์ 0-2 หน่วย  20 บาท', W/2, y+14);
-    ctx.restore(); y += 20;
+    ctx.font = "600 35px 'Sarabun','Noto Sans Thai',sans-serif";
+    ctx.fillStyle='#374151'; ctx.textAlign='center';
+    ctx.fillText('หน่วยล่ะ 7 บาท  |  ไม่ใช้น้ำค่ามิเตอร์ 0-2 หน่วย  20 บาท', W/2, y+16);
+    ctx.restore(); y += 36;
 
     y += 4;
     ctx.drawImage(qrImg, 0, 0, qrImg.naturalWidth, qrImg.naturalHeight, (W - qrW) / 2, y, qrW, qrH);
