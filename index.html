@@ -554,6 +554,15 @@
     .empty-state { text-align: center; padding: 32px 20px; color: var(--gray-400); }
     .empty-state i { font-size: 2.5rem; margin-bottom: 10px; display: block; opacity: 0.4; }
     .empty-state p { font-size: 0.88rem; }
+
+    /* ╔═══ HOUSE HISTORY 12 เดือนย้อนหลัง ═══╗ */
+    .hh-card { background: white; border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; margin: 0 10px 10px; }
+    .hh-row { display: grid; grid-template-columns: 1.7fr 0.6fr 0.6fr 0.7fr 1fr 1fr; gap: 0; align-items: center; padding: 7px 10px; border-bottom: 1px solid var(--gray-100); }
+    .hh-row:last-child { border-bottom: none; }
+    .hh-row.hh-paid    { background: #f0fdf4; border-left: 3px solid var(--green); }
+    .hh-row.hh-unpaid  { background: var(--yellow-light); border-left: 3px solid var(--yellow); }
+    .hh-row.hh-pending { background: var(--orange-light); border-left: 3px solid var(--orange); }
+    .hh-row.hh-none    { background: white; border-left: 3px solid var(--gray-100); }
   </style>
 </head>
 <body>
@@ -646,7 +655,7 @@
   </div>
 
   <div class="card">
-    <div class="card-title"><i class="fa-solid fa-house-user"></i> หมายเลขมิเตอร์</div>
+    <div class="card-title"><i class="fa-solid fa-house-user"></i> ข้อมูลบ้าน</div>
     <div class="row">
       <div class="col-5">
         <label class="lbl">บ้านเลขที่</label>
@@ -715,6 +724,27 @@
     <div class="strip-item">
       <div class="strip-label">ค้างจ่าย (฿)</div>
       <div class="strip-val yellow" id="sum-unpaid">0</div>
+    </div>
+  </div>
+
+
+  <!-- SECTION: ประวัติย้อนหลัง 12 เดือนของบ้าน (แสดงเมื่อคีย์บ้านเลขที่) -->
+  <div id="houseHistorySection" style="display:none;">
+    <div class="section-header">
+      <div class="section-header-line"></div>
+      <div class="section-header-text"><i class="fa-solid fa-clock-rotate-left"></i> ประวัติ 12 เดือน — บ้าน <span id="houseHistoryTitle"></span></div>
+      <div class="section-header-line"></div>
+    </div>
+    <div class="hh-card">
+      <div style="display:grid;grid-template-columns:1.7fr 0.6fr 0.6fr 0.7fr 1fr 1fr;gap:0;padding:8px 10px 7px;background:linear-gradient(135deg,#e8f0fe,#d1e0fd);border-bottom:2px solid #b6ccfb;">
+        <div style="font-size:0.6rem;font-weight:800;color:var(--blue-dark);text-transform:uppercase;">เดือน / ปี</div>
+        <div style="font-size:0.6rem;font-weight:700;color:var(--gray-500);text-align:center;text-transform:uppercase;">ก่อน</div>
+        <div style="font-size:0.6rem;font-weight:700;color:var(--gray-500);text-align:center;text-transform:uppercase;">หลัง</div>
+        <div style="font-size:0.6rem;font-weight:700;color:var(--blue);text-align:right;text-transform:uppercase;">หน่วย</div>
+        <div style="font-size:0.6rem;font-weight:700;color:var(--green);text-align:right;text-transform:uppercase;">ยอดเงิน</div>
+        <div style="font-size:0.6rem;font-weight:700;color:var(--gray-400);text-align:center;text-transform:uppercase;">สถานะ</div>
+      </div>
+      <div id="houseHistoryGrid"></div>
     </div>
   </div>
 
@@ -2034,14 +2064,73 @@ function syncInputs(source) {
   var nEl = document.getElementById('ownerName');
   if (source === 'house') {
     var val = hEl.value.trim();
-    if (!val) { nEl.value = ''; clearMeter(); return; }
+    if (!val) { nEl.value = ''; clearMeter(); renderHouseHistory(''); return; }
     var ex = villagersData.find(function(v){ return v.house === val; });
     if (ex) { nEl.value = ex.name; loadMeterData(); }
     else { nEl.value = ''; }
+    renderHouseHistory(val);
   }
 }
 
-function clearMeter() {
+function clearMeter()
+// ══════════════════════════════════
+// HOUSE HISTORY 12 เดือนย้อนหลัง
+// ══════════════════════════════════
+function renderHouseHistory(houseNo) {
+  var sec = document.getElementById('houseHistorySection');
+  if (!houseNo) { sec.style.display = 'none'; return; }
+  sec.style.display = '';
+  document.getElementById('houseHistoryTitle').textContent = houseNo;
+
+  var selY = Number(document.getElementById('year').value);
+  var selM = MONTHS.indexOf(String(document.getElementById('month').value));
+  if (selM < 0) { var now = new Date(); selM = now.getMonth(); selY = now.getFullYear() + 543; }
+
+  var months12 = [];
+  for (var i = 0; i < 12; i++) {
+    var totalM = selY * 12 + selM - i;
+    var yr = Math.floor(totalM / 12);
+    var mo = totalM % 12;
+    months12.push({ month: MONTHS[mo], year: yr });
+  }
+
+  var html = '';
+  months12.forEach(function(t) {
+    var rec = null;
+    for (var k = 0; k < allRecords.length; k++) {
+      var r = allRecords[k];
+      if (String(r.houseNo) === String(houseNo) && String(r.year) === String(t.year) && String(r.month) === t.month) { rec = r; break; }
+    }
+    var isPend = rec && String(rec.status) !== 'Paid' && (rec.after === '' || rec.after === null || rec.after === undefined);
+    var hasData = !!rec;
+    var bfVal   = hasData && rec.before != null && rec.before !== '' ? rec.before : '—';
+    var afVal   = hasData && !isPend && rec.after != null && rec.after !== '' ? rec.after : '—';
+    var unit    = hasData && !isPend ? (Number(rec.unit) || 0) : null;
+    var price   = unit != null ? calcWaterPrice(unit) : null;
+    var rowCls  = !hasData ? 'hh-none'
+                : isPend ? 'hh-pending'
+                : (String(rec.status) === 'Paid' ? 'hh-paid' : 'hh-unpaid');
+    var stBadge = !hasData ? '<span style="color:var(--gray-300);font-size:10px;">—</span>'
+                : isPend   ? '<span class="badge-pend-sm">รอเลข</span>'
+                : (String(rec.status) === 'Paid' ? '<span class="badge-paid-sm">✓</span>'
+                : '<span class="badge-unpaid-sm">ค้าง</span>');
+    var mShort  = t.month.substring(0, 3);
+    var unitStr = unit != null ? '<b style="color:var(--blue);">'+unit+'</b>' : '<span style="color:var(--gray-300);">—</span>';
+    var priceStr = price != null && price > 0 ? '<b style="color:var(--green);">'+price.toLocaleString()+'</b>' : '<span style="color:var(--gray-300);">—</span>';
+    html += '<div class="hh-row '+rowCls+'">'
+          + '<div><span style="font-size:0.82rem;font-weight:'+(hasData?'700':'400')+';color:'+(hasData?'var(--gray-700)':'var(--gray-300)')+';">'+mShort+'</span>'
+          + ' <span style="font-size:0.68rem;color:var(--gray-400);">'+t.year+'</span></div>'
+          + '<div style="text-align:center;font-size:0.76rem;color:var(--gray-500);">'+(hasData ? bfVal : '—')+'</div>'
+          + '<div style="text-align:center;font-size:0.76rem;color:var(--gray-500);">'+(hasData && !isPend ? afVal : '—')+'</div>'
+          + '<div style="text-align:right;font-size:0.8rem;">'+unitStr+'</div>'
+          + '<div style="text-align:right;font-size:0.8rem;">'+priceStr+'</div>'
+          + '<div style="text-align:center;">'+stBadge+'</div>'
+          + '</div>';
+  });
+  if (!html) html = '<div style="text-align:center;padding:18px;color:var(--gray-300);font-size:0.82rem;">ไม่พบข้อมูลย้อนหลัง</div>';
+  document.getElementById('houseHistoryGrid').innerHTML = html;
+}
+ {
   document.getElementById('meterBefore').value = '';
   document.getElementById('meterAfter').value  = '';
   var ae = document.getElementById('meterAfter');
@@ -2073,7 +2162,7 @@ function onNameInput() {
 function selectName(name, house) {
   document.getElementById('ownerName').value = name;
   document.getElementById('houseNo').value   = house;
-  hideNameDropdown(); loadMeterData();
+  hideNameDropdown(); loadMeterData(); renderHouseHistory(house);
 }
 
 function hideNameDropdown() {
