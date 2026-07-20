@@ -554,6 +554,35 @@
     .empty-state { text-align: center; padding: 32px 20px; color: var(--gray-400); }
     .empty-state i { font-size: 2.5rem; margin-bottom: 10px; display: block; opacity: 0.4; }
     .empty-state p { font-size: 0.88rem; }
+
+    /* ══ House 12-Month History ══ */
+    .hist-wrap { background: white; border-radius: var(--radius); box-shadow: var(--shadow); margin: 0 10px 10px; overflow: hidden; }
+    .hist-summary { display: flex; gap: 0; border-bottom: 1px solid var(--gray-100); }
+    .hist-sum-item { flex: 1; text-align: center; padding: 10px 6px; }
+    .hist-sum-item:not(:last-child) { border-right: 1px solid var(--gray-100); }
+    .hist-sum-lbl { font-size: 0.60rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--gray-400); margin-bottom: 3px; }
+    .hist-sum-val { font-size: 1.1rem; font-weight: 800; }
+    .hist-sum-val.paid   { color: var(--green); }
+    .hist-sum-val.unpaid { color: var(--yellow); }
+    .hist-sum-val.unit   { color: var(--blue); }
+    .hist-body { padding: 8px 10px 10px; }
+    .hist-header-row { display: grid; grid-template-columns: 1.6fr 0.7fr 1fr 1fr 1.2fr; gap: 4px; padding: 0 6px 6px; border-bottom: 1px solid var(--gray-100); margin-bottom: 4px; }
+    .hist-header-row div { font-size: 0.60rem; font-weight: 700; color: var(--gray-400); text-transform: uppercase; letter-spacing: 0.4px; }
+    .hist-row { display: grid; grid-template-columns: 1.6fr 0.7fr 1fr 1fr 1.2fr; gap: 4px; align-items: center; padding: 7px 6px; border-radius: 7px; margin-bottom: 3px; border-left: 3px solid transparent; }
+    .hist-row.paid-row   { background: var(--green-light);  border-left-color: var(--green); }
+    .hist-row.unpaid-row { background: var(--yellow-light); border-left-color: var(--yellow); }
+    .hist-row.pend-row   { background: var(--orange-light); border-left-color: var(--orange); }
+    .hist-row.empty-row  { background: var(--gray-50); opacity: 0.5; }
+    .hist-month-lbl { font-size: 0.82rem; font-weight: 700; color: var(--gray-700); }
+    .hist-month-yr  { font-size: 0.60rem; color: var(--gray-400); margin-top: 1px; }
+    .hist-cell { font-size: 0.78rem; text-align: right; }
+    .hist-cell.center { text-align: center; }
+    .hist-badge { display: inline-flex; align-items: center; gap: 3px; font-size: 0.65rem; font-weight: 700; padding: 2px 7px; border-radius: 20px; white-space: nowrap; }
+    .hist-badge.paid   { background: #d5f5ec; color: var(--green-dark); }
+    .hist-badge.unpaid { background: var(--yellow-light); color: #92400e; }
+    .hist-badge.pend   { background: var(--orange-light); color: #9a3412; }
+    .hist-badge.empty  { background: var(--gray-100); color: var(--gray-400); }
+    .hist-no-data { padding: 18px; text-align: center; color: var(--gray-400); font-size: 0.82rem; }
   </style>
 </head>
 <body>
@@ -692,6 +721,16 @@
         <i class="fa-solid fa-check"></i> จ่ายเงินแล้ว
       </button>
     </div>
+  </div>
+
+  <!-- SECTION: ประวัติย้อนหลัง 12 เดือน (แสดงเมื่อเลือกบ้านเลขที่) -->
+  <div id="houseHistorySection" style="display:none;">
+    <div class="section-header">
+      <div class="section-header-line"></div>
+      <div class="section-header-text"><i class="fa-solid fa-clock-rotate-left"></i> ประวัติ 12 เดือนล่าสุด &mdash; <span id="houseHistoryTitle"></span></div>
+      <div class="section-header-line"></div>
+    </div>
+    <div id="houseHistoryContent"></div>
   </div>
 
   <!-- SECTION: สรุปภาพรวม -->
@@ -2022,6 +2061,7 @@ async function loadAllData(cb) {
     var data   = await api('getAllData');
     allRecords = data || [];
     renderAll();
+    var _curHouseForHistory = (document.getElementById('houseNo')||{}).value; if (_curHouseForHistory && _curHouseForHistory.trim()) renderHouseHistory(_curHouseForHistory.trim());
     if (cb) cb();
   } catch(e) { console.error('getAllData:', e); }
 }
@@ -2036,8 +2076,8 @@ function syncInputs(source) {
     var val = hEl.value.trim();
     if (!val) { nEl.value = ''; clearMeter(); return; }
     var ex = villagersData.find(function(v){ return v.house === val; });
-    if (ex) { nEl.value = ex.name; loadMeterData(); }
-    else { nEl.value = ''; }
+    if (ex) { nEl.value = ex.name; loadMeterData(); renderHouseHistory(val); }
+    else { nEl.value = ''; renderHouseHistory(null); }
   }
 }
 
@@ -2049,6 +2089,7 @@ function clearMeter() {
   var lb = document.getElementById('labelAfter');
   lb.textContent = 'อ่านหลัง (ถ้ามี)'; lb.className = 'lbl accent-blue';
   setStatusHint('hidden',''); calculate();
+  var hs = document.getElementById('houseHistorySection'); if (hs) hs.style.display = 'none';
 }
 
 function onNameInput() {
@@ -2073,7 +2114,7 @@ function onNameInput() {
 function selectName(name, house) {
   document.getElementById('ownerName').value = name;
   document.getElementById('houseNo').value   = house;
-  hideNameDropdown(); loadMeterData();
+  hideNameDropdown(); loadMeterData(); renderHouseHistory(house);
 }
 
 function hideNameDropdown() {
@@ -2319,6 +2360,124 @@ async function changeStatus(r, newStatus, rowId) {
 // ══════════════════════════════════
 // RENDER ALL (METER TABLE + SUMMARY)
 // ══════════════════════════════════
+// ══════════════════════════════════════════════════════════
+// ประวัติย้อนหลัง 12 เดือน — รายบ้าน
+// ══════════════════════════════════════════════════════════
+function renderHouseHistory(houseNo) {
+  var sec = document.getElementById('houseHistorySection');
+  var titleEl = document.getElementById('houseHistoryTitle');
+  var content = document.getElementById('houseHistoryContent');
+  if (!houseNo || !houseNo.trim()) {
+    sec.style.display = 'none';
+    return;
+  }
+
+  // หาชื่อเจ้าบ้าน
+  var owner = villagersData.find(function(v){ return v.house === houseNo; });
+  titleEl.textContent = 'บ้าน ' + houseNo + (owner && owner.name ? ' (' + owner.name + ')' : '');
+  sec.style.display = 'block';
+
+  // สร้าง list 12 เดือนย้อนหลังจากปัจจุบัน
+  var now = new Date();
+  // ปีปัจจุบัน พ.ศ.
+  var curYear  = now.getFullYear() + 543;
+  var curMonth = now.getMonth(); // 0-based
+
+  var months12 = [];
+  for (var i = 0; i < 12; i++) {
+    var mi = (curMonth - i + 12) % 12;
+    var yi = curYear - Math.floor((i - curMonth + 12) / 12);
+    // คำนวณปีให้ถูกต้อง
+    var totalMonths = curMonth - i;
+    var mIdx, yCalc;
+    if (totalMonths >= 0) {
+      mIdx  = totalMonths;
+      yCalc = curYear;
+    } else {
+      mIdx  = totalMonths + 12;
+      yCalc = curYear - 1;
+    }
+    months12.push({ monthIdx: mIdx, year: yCalc });
+  }
+
+  // ดึงข้อมูล allRecords สำหรับบ้านนี้
+  var houseRecs = allRecords.filter(function(r){ return String(r.houseNo) === String(houseNo); });
+
+  // สรุป
+  var totalPaid = 0, totalUnpaid = 0, totalUnit = 0, totalPend = 0;
+
+  var rowsHtml = months12.map(function(m) {
+    var mName = MONTHS[m.monthIdx];
+    var yr    = String(m.year);
+    var rec   = houseRecs.find(function(r){ return String(r.year) === yr && String(r.month) === mName; });
+
+    if (!rec) {
+      return '<div class="hist-row empty-row">'
+        + '<div><div class="hist-month-lbl">' + mName.substring(0,3) + '</div><div class="hist-month-yr">ปี ' + yr + '</div></div>'
+        + '<div class="hist-cell center" style="color:var(--gray-300);">—</div>'
+        + '<div class="hist-cell" style="color:var(--gray-300);text-align:right;">—</div>'
+        + '<div class="hist-cell" style="color:var(--gray-300);text-align:right;">—</div>'
+        + '<div class="hist-cell center"><span class="hist-badge empty">ไม่มีข้อมูล</span></div>'
+        + '</div>';
+    }
+
+    var isPend = String(rec.status) !== 'Paid' && (rec.after === '' || rec.after === null || rec.after === undefined);
+    var unit   = isPend ? null : (Number(rec.unit) || 0);
+    var price  = unit !== null ? calcWaterPrice(unit) : null;
+
+    var rowCls, badge;
+    if (String(rec.status) === 'Paid') {
+      rowCls = 'paid-row';
+      badge  = '<span class="hist-badge paid"><i class="fa-solid fa-check" style="font-size:8px;"></i> จ่ายแล้ว</span>';
+      totalPaid++;
+      totalUnit += unit || 0;
+    } else if (isPend) {
+      rowCls = 'pend-row';
+      badge  = '<span class="hist-badge pend"><i class="fa-solid fa-hourglass" style="font-size:8px;"></i> รอเลขหลัง</span>';
+      totalPend++;
+    } else {
+      rowCls = 'unpaid-row';
+      badge  = '<span class="hist-badge unpaid"><i class="fa-regular fa-clock" style="font-size:8px;"></i> ค้างจ่าย</span>';
+      totalUnpaid++;
+      totalUnit += unit || 0;
+    }
+
+    var unitCell  = unit !== null ? '<b style="color:var(--blue);">' + unit.toLocaleString() + '</b>' : '<span style="color:var(--gray-400);">—</span>';
+    var priceCell = price !== null ? (String(rec.status) === 'Paid'
+      ? '<b style="color:var(--green);">' + price.toLocaleString() + '</b>'
+      : '<b style="color:var(--yellow);">' + price.toLocaleString() + '</b>')
+      : '<span style="color:var(--gray-400);">—</span>';
+
+    return '<div class="hist-row ' + rowCls + '">'
+      + '<div><div class="hist-month-lbl">' + mName.substring(0,3) + '</div><div class="hist-month-yr">ปี ' + yr + '</div></div>'
+      + '<div class="hist-cell center" style="font-size:0.72rem;color:var(--gray-500);">' + String(rec.before !== null && rec.before !== undefined && rec.before !== '' ? rec.before : '—') + '</div>'
+      + '<div class="hist-cell" style="text-align:right;">' + unitCell + '</div>'
+      + '<div class="hist-cell" style="text-align:right;">' + priceCell + '</div>'
+      + '<div class="hist-cell center">' + badge + '</div>'
+      + '</div>';
+  }).join('');
+
+  var summaryHtml = '<div class="hist-wrap">'
+    + '<div class="hist-summary">'
+    + '<div class="hist-sum-item"><div class="hist-sum-lbl">หน่วยรวม</div><div class="hist-sum-val unit">' + totalUnit.toLocaleString() + '</div></div>'
+    + '<div class="hist-sum-item"><div class="hist-sum-lbl">จ่ายแล้ว</div><div class="hist-sum-val paid">' + totalPaid + ' เดือน</div></div>'
+    + '<div class="hist-sum-item"><div class="hist-sum-lbl">ค้างจ่าย</div><div class="hist-sum-val unpaid">' + totalUnpaid + (totalPend ? ' + รอ ' + totalPend : '') + ' เดือน</div></div>'
+    + '</div>'
+    + '<div class="hist-body">'
+    + '<div class="hist-header-row">'
+    + '<div>เดือน / ปี</div>'
+    + '<div style="text-align:center;">อ่านก่อน</div>'
+    + '<div style="text-align:right;">หน่วย</div>'
+    + '<div style="text-align:right;">บาท</div>'
+    + '<div style="text-align:center;">สถานะ</div>'
+    + '</div>'
+    + rowsHtml
+    + '</div>'
+    + '</div>';
+
+  content.innerHTML = summaryHtml;
+}
+
 function renderAll() {
   var selY = String(document.getElementById('year').value);
   var fH   = (document.getElementById('filterHouse')  || {value:''}).value.trim();
