@@ -720,6 +720,9 @@
       <button id="btnPaid" class="btn btn-paid" onclick="btnSave('Paid')">
         <i class="fa-solid fa-check"></i> จ่ายเงินแล้ว
       </button>
+      <button id="btnSharePrint" class="btn" onclick="printReceiptByForm()" style="background:linear-gradient(135deg,#1d4ed8,#2563eb);color:#fff;flex:0 0 auto;padding:0 16px;font-size:0.95rem;">
+        <i class="fa-solid fa-share-nodes"></i> แชร์/พิมพ์
+      </button>
     </div>
   </div>
 
@@ -2978,6 +2981,18 @@ function printReceipt(r) {
 
 
 function _fallbackDownload(blob,fn){ var url=URL.createObjectURL(blob); var a=document.createElement('a'); a.href=url; a.download=fn; a.click(); setTimeout(function(){ URL.revokeObjectURL(url); },5000); }
+
+function printReceiptByForm() {
+  var houseNo = document.getElementById('houseNo').value.trim();
+  var month   = document.getElementById('month').value;
+  var year    = document.getElementById('year').value;
+  if (!houseNo) { alert('กรุณาเลือกบ้านเลขที่ก่อน'); return; }
+  var rec = allRecords.find(function(r) {
+    return String(r.houseNo) === String(houseNo) && String(r.month) === String(month) && String(r.year) === String(year);
+  });
+  if (!rec) { alert('ไม่พบรายการของบ้าน ' + houseNo + ' เดือน ' + month + ' ปี ' + year + '\nกรุณาบันทึกรายการก่อน'); return; }
+  printReceipt(rec);
+}
 
 // ══════════════════════════════════════════════════════
 // BULK MONTHLY RECEIPT PRINT — พิมพ์ใบเสร็จรายเดือนรวม
